@@ -110,6 +110,11 @@
     margin-top: 20px; width: 100%; padding: 13px; border: none; border-radius: 8px;
     background: var(--blauw); color: #fff; font-size: 0.94rem; font-weight: 600; cursor: pointer; font-family: inherit;
   }
+  .melding {
+    display: none; margin-top: 16px; padding: 11px 13px; border-radius: 8px; font-size: 0.85rem;
+    background: #fdeeee; color: #b3261e; border: 1px solid #f3c2c0;
+  }
+  .melding.tonen { display: block; }
   .succes-scherm { text-align: center; padding: 26px 10px 6px; }
   .succes-scherm .badge {
     width: 46px; height: 46px; border-radius: 50%; background: #e9f5ee;
@@ -175,9 +180,10 @@
               <p class="sub">Ekonomika brengt het tot bij jouw stand.</p>
               <form id="bestel-form">
                 <label for="bedrijf">Bedrijf / standnaam</label>
-                <input type="text" id="bedrijf" placeholder="bv. Deloitte – stand 5" required />
+                <input type="text" id="bedrijf" placeholder="bv. Deloitte – stand 5" />
                 <label>Wat wil je drinken?</label>
                 <div id="drank-lijst"></div>
+                <div id="melding" class="melding"></div>
                 <button type="submit" class="bestel-btn">Bestelling plaatsen</button>
               </form>
             </div>
@@ -284,9 +290,21 @@
 
   document.getElementById("bestel-form").addEventListener("submit", (e) => {
     e.preventDefault();
-    const bedrijf = document.getElementById("bedrijf").value.trim() || "Naamloze stand";
+    const meldingEl = document.getElementById("melding");
+    const bedrijf = document.getElementById("bedrijf").value.trim();
     const dranken = Object.entries(aantallen).filter(([, a]) => a > 0).map(([naam, aantal]) => ({ naam, aantal }));
-    if (dranken.length === 0) { alert("Kies minstens één drankje."); return; }
+
+    if (!bedrijf) {
+      meldingEl.textContent = "Vul je bedrijfs- of standnaam in.";
+      meldingEl.className = "melding tonen";
+      return;
+    }
+    if (dranken.length === 0) {
+      meldingEl.textContent = "Kies minstens één drankje.";
+      meldingEl.className = "melding tonen";
+      return;
+    }
+    meldingEl.className = "melding";
 
     const bestelling = { id: volgendId++, bedrijf, dranken, tijdstip: new Date() };
     document.getElementById("leeg-bericht").style.display = "none";
@@ -299,6 +317,7 @@
   document.getElementById("nieuwe-bestelling-btn").addEventListener("click", () => {
     document.getElementById("bestel-form").reset();
     MENU.forEach((naam) => { aantallen[naam] = 0; document.getElementById(`aantal-${cssId(naam)}`).textContent = 0; });
+    document.getElementById("melding").className = "melding";
     document.getElementById("succes-scherm").style.display = "none";
     document.getElementById("bestel-kaart").style.display = "block";
   });
