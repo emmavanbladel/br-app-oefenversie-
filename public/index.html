@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ekonomika — Bestel je drankje</title>
+<link rel="icon" type="image/png" href="/assets/favicon.png" />
+<style>
+  :root {
+    --blauw: #0a4e9d;
+    --blauw-donker: #073a78;
+    --achtergrond: #f5f6f8;
+    --groen: #1c8a4b;
+    --grijs: #6b7280;
+    --rand: #e2e5eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--achtergrond);
+    color: #1a1a1a;
+    min-height: 100vh;
+  }
+  header {
+    background: #fff;
+    border-bottom: 1px solid var(--rand);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header img { height: 26px; display: block; }
+  header .paginanaam {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--grijs);
+  }
+  main {
+    display: flex;
+    justify-content: center;
+    padding: 28px 16px 60px;
+  }
+  .kaart {
+    background: #fff;
+    border: 1px solid var(--rand);
+    border-radius: 12px;
+    max-width: 460px;
+    width: 100%;
+    padding: 28px 24px 30px;
+  }
+  h1 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: #111827;
+  }
+  .sub {
+    color: var(--grijs);
+    font-size: 0.9rem;
+    margin: 0 0 22px;
+    line-height: 1.4;
+  }
+  label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin: 20px 0 7px;
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 11px 13px;
+    font-size: 0.98rem;
+    border: 1.5px solid var(--rand);
+    border-radius: 8px;
+    outline: none;
+    font-family: inherit;
+  }
+  input[type="text"]:focus { border-color: var(--blauw); }
+
+  .drank-lijst { margin-top: 6px; border-top: 1px solid var(--rand); }
+  .drank-rij {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 2px;
+    border-bottom: 1px solid var(--rand);
+  }
+  .drank-naam { font-size: 0.96rem; }
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .stepper button {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1.5px solid var(--rand);
+    background: #fff;
+    color: var(--blauw);
+    font-size: 1.05rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .stepper button:active { background: var(--achtergrond); }
+  .stepper .aantal {
+    min-width: 16px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+
+  button.bestel-btn {
+    margin-top: 26px;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    background: var(--blauw);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  button.bestel-btn:hover { background: var(--blauw-donker); }
+  button.bestel-btn:disabled {
+    background: #b7c4d9;
+    cursor: not-allowed;
+  }
+
+  .melding {
+    display: none;
+    margin-top: 18px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+  }
+  .melding.fout {
+    display: block;
+    background: #fdeeee;
+    color: #b3261e;
+    border: 1px solid #f3c2c0;
+  }
+
+  .succes-scherm { text-align: center; padding: 12px 0 6px; }
+  .succes-scherm .badge {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #e9f5ee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+  }
+  .succes-scherm h2 { color: #111827; margin: 0 0 6px; font-size: 1.15rem; }
+  .succes-scherm p { color: var(--grijs); margin: 0 0 22px; font-size: 0.9rem; line-height: 1.4; }
+  .succes-scherm button {
+    padding: 11px 22px;
+    border-radius: 8px;
+    border: 1.5px solid var(--blauw);
+    background: #fff;
+    color: var(--blauw);
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.92rem;
+  }
+  .succes-scherm button:hover { background: var(--achtergrond); }
+</style>
+</head>
+<body>
+  <header>
+    <img src="/assets/ekonomika-logo.png" alt="Ekonomika" />
+    <span class="paginanaam">Bestellen</span>
+  </header>
+
+  <main>
+    <div class="kaart">
+      <div id="bestel-scherm">
+        <h1>Bestel je drankje</h1>
+        <p class="sub">Ekonomika brengt het tot bij jouw stand.</p>
+
+        <form id="bestel-form">
+          <label for="bedrijf">Bedrijf / standnaam</label>
+          <input type="text" id="bedrijf" name="bedrijf" placeholder="bv. Deloitte – stand 5" required autocomplete="organization" />
+
+          <label>Wat wil je drinken?</label>
+          <div class="drank-lijst" id="drank-lijst">
+            <!-- wordt automatisch gevuld -->
+          </div>
+
+          <div id="melding" class="melding"></div>
+
+          <button type="submit" class="bestel-btn" id="bestel-btn">Bestelling plaatsen</button>
+        </form>
+      </div>
+
+      <div id="succes-scherm" class="succes-scherm" style="display:none;">
+        <div class="badge">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M4 12.5L9.5 18L20 6" stroke="#1c8a4b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h2>Bestelling ontvangen</h2>
+        <p>Een vrijwilliger van Ekonomika komt het zo snel mogelijk brengen.</p>
+        <button id="nieuwe-bestelling-btn">Nog een bestelling plaatsen</button>
+      </div>
+    </div>
+  </main>
+
+<script>
+  const aantallen = {};
+  let menu = [];
+
+  async function laadMenu() {
+    const res = await fetch("/api/menu");
+    menu = await res.json();
+    const container = document.getElementById("drank-lijst");
+    container.innerHTML = "";
+    menu.forEach((naam) => {
+      aantallen[naam] = 0;
+      const rij = document.createElement("div");
+      rij.className = "drank-rij";
+      rij.innerHTML = `
+        <span class="drank-naam">${naam}</span>
+        <div class="stepper">
+          <button type="button" data-actie="min" data-naam="${naam}">−</button>
+          <span class="aantal" id="aantal-${cssId(naam)}">0</span>
+          <button type="button" data-actie="plus" data-naam="${naam}">+</button>
+        </div>
+      `;
+      container.appendChild(rij);
+    });
+
+    container.querySelectorAll("button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const naam = btn.dataset.naam;
+        if (btn.dataset.actie === "plus") {
+          aantallen[naam] = Math.min(aantallen[naam] + 1, 20);
+        } else {
+          aantallen[naam] = Math.max(aantallen[naam] - 1, 0);
+        }
+        document.getElementById(`aantal-${cssId(naam)}`).textContent = aantallen[naam];
+      });
+    });
+  }
+
+  function cssId(naam) {
+    return naam.replace(/[^a-z0-9]/gi, "-").toLowerCase();
+  }
+
+  function toonMelding(tekst, type) {
+    const el = document.getElementById("melding");
+    el.textContent = tekst;
+    el.className = `melding ${type}`;
+  }
+
+  document.getElementById("bestel-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const bedrijf = document.getElementById("bedrijf").value.trim();
+    const dranken = Object.entries(aantallen)
+      .filter(([, aantal]) => aantal > 0)
+      .map(([naam, aantal]) => ({ naam, aantal }));
+
+    if (!bedrijf) {
+      toonMelding("Vul je bedrijfs- of standnaam in.", "fout");
+      return;
+    }
+    if (dranken.length === 0) {
+      toonMelding("Kies minstens één drankje.", "fout");
+      return;
+    }
+
+    const btn = document.getElementById("bestel-btn");
+    btn.disabled = true;
+    btn.textContent = "Bezig met versturen...";
+
+    try {
+      const res = await fetch("/api/bestellingen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bedrijf, dranken }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Er ging iets mis.");
+      }
+      document.getElementById("bestel-scherm").style.display = "none";
+      document.getElementById("succes-scherm").style.display = "block";
+    } catch (err) {
+      toonMelding(err.message, "fout");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Bestelling plaatsen";
+    }
+  });
+
+  document.getElementById("nieuwe-bestelling-btn").addEventListener("click", () => {
+    document.getElementById("bestel-form").reset();
+    Object.keys(aantallen).forEach((naam) => {
+      aantallen[naam] = 0;
+      document.getElementById(`aantal-${cssId(naam)}`).textContent = 0;
+    });
+    document.getElementById("melding").className = "melding";
+    document.getElementById("succes-scherm").style.display = "none";
+    document.getElementById("bestel-scherm").style.display = "block";
+  });
+
+  laadMenu();
+</script>
+</body>
+</html>

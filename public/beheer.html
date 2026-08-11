@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ekonomika — Beheer bestellingen</title>
+<link rel="icon" type="image/png" href="/assets/favicon.png" />
+<style>
+  :root {
+    --blauw: #0a4e9d;
+    --blauw-donker: #073a78;
+    --achtergrond: #f5f6f8;
+    --groen: #1c8a4b;
+    --grijs: #6b7280;
+    --rand: #e2e5eb;
+    --oranje: #c97a12;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--achtergrond);
+    color: #1a1a1a;
+  }
+  header {
+    background: #fff;
+    border-bottom: 1px solid var(--rand);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header img { height: 26px; display: block; }
+  header .paginanaam {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--grijs);
+  }
+  main { padding: 20px 16px 80px; }
+
+  .status-balk {
+    max-width: 720px;
+    margin: 0 auto 16px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid transparent;
+  }
+  .status-balk.verbonden { background: #eaf6ef; color: var(--groen); border-color: #cdead9; }
+  .status-balk.niet-verbonden { background: #fdeeee; color: #b3261e; border-color: #f3c2c0; }
+  .stip { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; }
+
+  #geluid-toestaan {
+    max-width: 720px;
+    margin: 0 auto 16px;
+    padding: 12px 14px;
+    background: #fdf6ea;
+    border: 1px solid #eddcae;
+    color: #7a5a10;
+    border-radius: 8px;
+    font-size: 0.87rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  #geluid-toestaan button {
+    padding: 8px 14px;
+    border-radius: 7px;
+    border: none;
+    background: var(--oranje);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+    font-size: 0.85rem;
+  }
+
+  .lijst { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+
+  .bestelling {
+    background: #fff;
+    border: 1px solid var(--rand);
+    border-radius: 10px;
+    padding: 15px 17px;
+    border-left: 4px solid var(--oranje);
+    animation: verschijnen 0.35s ease;
+  }
+  .bestelling.geleverd { border-left-color: var(--groen); opacity: 0.6; }
+  @keyframes verschijnen {
+    from { transform: translateY(-8px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .bestelling-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .bedrijf { font-weight: 700; font-size: 1rem; color: #111827; }
+  .tijd { font-size: 0.8rem; color: var(--grijs); white-space: nowrap; }
+  .dranken { font-size: 0.92rem; margin: 0 0 12px; color: #333; }
+  .dranken span.aantal { font-weight: 700; color: var(--blauw); }
+  .acties { display: flex; justify-content: flex-end; }
+  .afleveren-btn {
+    padding: 8px 15px;
+    border-radius: 7px;
+    border: 1.5px solid var(--groen);
+    background: #fff;
+    color: var(--groen);
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.87rem;
+    font-family: inherit;
+  }
+  .afleveren-btn:hover { background: #eaf6ef; }
+  .label-geleverd {
+    font-size: 0.85rem;
+    color: var(--groen);
+    font-weight: 600;
+  }
+
+  .leeg {
+    max-width: 720px;
+    margin: 0 auto;
+    text-align: center;
+    color: var(--grijs);
+    padding: 60px 20px;
+    font-size: 0.92rem;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <img src="/assets/ekonomika-logo.png" alt="Ekonomika" />
+    <span class="paginanaam">Beheer bestellingen</span>
+  </header>
+
+  <main>
+    <div id="verbinding-status" class="status-balk niet-verbonden">
+      <span class="stip"></span> <span id="verbinding-tekst">Verbinden...</span>
+    </div>
+
+    <div id="geluid-toestaan">
+      <span>Zet geluid aan zodat je een melding hoort bij elke nieuwe bestelling.</span>
+      <button id="geluid-btn">Geluid aanzetten</button>
+    </div>
+
+    <div class="lijst" id="lijst">
+      <div class="leeg" id="leeg-bericht">Nog geen bestellingen binnengekomen.</div>
+    </div>
+  </main>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  const lijst = document.getElementById("lijst");
+  const leegBericht = document.getElementById("leeg-bericht");
+  let geluidAan = false;
+  let audioCtx = null;
+
+  // ---- Verbindingsstatus ----
+  function zetStatus(verbonden) {
+    const balk = document.getElementById("verbinding-status");
+    const tekst = document.getElementById("verbinding-tekst");
+    balk.className = `status-balk ${verbonden ? "verbonden" : "niet-verbonden"}`;
+    tekst.textContent = verbonden ? "Live verbonden — klaar om bestellingen te ontvangen" : "Geen verbinding... opnieuw proberen";
+  }
+  socket.on("connect", () => zetStatus(true));
+  socket.on("disconnect", () => zetStatus(false));
+
+  // ---- Geluid ----
+  document.getElementById("geluid-btn").addEventListener("click", () => {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // korte "warming up" beep zodat browsers geluid vanaf nu toestaan
+    speelGeluid();
+    geluidAan = true;
+    document.getElementById("geluid-toestaan").style.display = "none";
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  });
+
+  function speelGeluid() {
+    if (!audioCtx) return;
+    const duur = 0.15;
+    [880, 1175].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      const start = audioCtx.currentTime + i * duur;
+      gain.gain.setValueAtTime(0.2, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + duur);
+      osc.start(start);
+      osc.stop(start + duur);
+    });
+  }
+
+  function toonBrowserMelding(bestelling) {
+    if ("Notification" in window && Notification.permission === "granted") {
+      const drankenTekst = bestelling.dranken.map((d) => `${d.aantal}x ${d.naam}`).join(", ");
+      new Notification("Nieuwe bestelling — " + bestelling.bedrijf, { body: drankenTekst });
+    }
+  }
+
+  // ---- Bestellingen tonen ----
+  function formatTijd(iso) {
+    const d = new Date(iso);
+    return d.toLocaleTimeString("nl-BE", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function renderBestelling(bestelling) {
+    const div = document.createElement("div");
+    div.className = "bestelling" + (bestelling.status === "geleverd" ? " geleverd" : "");
+    div.id = `bestelling-${bestelling.id}`;
+
+    const drankenHtml = bestelling.dranken
+      .map((d) => `<span class="aantal">${d.aantal}x</span> ${d.naam}`)
+      .join(" · ");
+
+    div.innerHTML = `
+      <div class="bestelling-top">
+        <span class="bedrijf">${bestelling.bedrijf}</span>
+        <span class="tijd">${formatTijd(bestelling.tijdstip)}</span>
+      </div>
+      <div class="dranken">${drankenHtml}</div>
+      <div class="acties">
+        ${
+          bestelling.status === "geleverd"
+            ? `<span class="label-geleverd">Geleverd</span>`
+            : `<button class="afleveren-btn" data-id="${bestelling.id}">Markeer als geleverd</button>`
+        }
+      </div>
+    `;
+    return div;
+  }
+
+  function voegBestellingToe(bestelling, bovenaan) {
+    leegBericht.style.display = "none";
+    const bestaand = document.getElementById(`bestelling-${bestelling.id}`);
+    const nieuweEl = renderBestelling(bestelling);
+    if (bestaand) {
+      bestaand.replaceWith(nieuweEl);
+    } else if (bovenaan) {
+      lijst.prepend(nieuweEl);
+    } else {
+      lijst.appendChild(nieuweEl);
+    }
+  }
+
+  lijst.addEventListener("click", async (e) => {
+    if (e.target.classList.contains("afleveren-btn")) {
+      const id = e.target.dataset.id;
+      e.target.disabled = true;
+      e.target.textContent = "Bezig...";
+      try {
+        await fetch(`/api/bestellingen/${id}/geleverd`, { method: "POST" });
+      } catch (err) {
+        e.target.disabled = false;
+        e.target.textContent = "Markeer als geleverd";
+      }
+    }
+  });
+
+  socket.on("nieuwe-bestelling", (bestelling) => {
+    voegBestellingToe(bestelling, true);
+    if (geluidAan) speelGeluid();
+    toonBrowserMelding(bestelling);
+    document.title = "Nieuwe bestelling — Ekonomika";
+    setTimeout(() => { document.title = "Ekonomika — Beheer bestellingen"; }, 4000);
+  });
+
+  socket.on("bestelling-bijgewerkt", (bestelling) => {
+    voegBestellingToe(bestelling, false);
+  });
+
+  // ---- Bestaande bestellingen laden bij openen pagina ----
+  async function laadBestellingen() {
+    const res = await fetch("/api/bestellingen");
+    const bestellingen = await res.json();
+    if (bestellingen.length === 0) return;
+    leegBericht.style.display = "none";
+    // API geeft nieuwste eerst; we tonen ze in dezelfde volgorde
+    bestellingen.forEach((b) => lijst.appendChild(renderBestelling(b)));
+  }
+
+  laadBestellingen();
+</script>
+</body>
+</html>

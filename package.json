@@ -1,0 +1,14 @@
+{
+  "name": "ekonomika-drankjes",
+  "version": "1.0.0",
+  "description": "Drankjesbestelapp voor Ekonomika jobbeurzen - partners bestellen drank via QR-code/link, vrijwilligers krijgen live meldingen",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5",
+    "qrcode": "^1.5.3"
+  }
+}

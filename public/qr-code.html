@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ekonomika — QR-code bestellen</title>
+<link rel="icon" type="image/png" href="/assets/favicon.png" />
+<style>
+  :root { --blauw: #0a4e9d; --grijs: #6b7280; --rand: #e2e5eb; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #fff;
+    display: flex;
+    justify-content: center;
+    padding: 48px 20px;
+  }
+  .kader {
+    text-align: center;
+    max-width: 420px;
+  }
+  .logo { height: 34px; margin-bottom: 28px; }
+  h1 { color: #111827; font-size: 1.4rem; font-weight: 700; margin: 0 0 4px; }
+  p.sub { color: var(--grijs); margin: 0; font-size: 0.95rem; }
+  img.qr {
+    width: 260px;
+    height: 260px;
+    margin: 28px 0 18px;
+    border: 1px solid var(--rand);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .link { word-break: break-all; font-size: 0.88rem; color: var(--blauw); margin-bottom: 24px; }
+  button {
+    padding: 11px 20px;
+    border-radius: 8px;
+    border: 1.5px solid var(--blauw);
+    background: #fff;
+    color: var(--blauw);
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.92rem;
+  }
+  button:hover { background: #f5f6f8; }
+  @media print {
+    button, p.sub { display: none; }
+    body { padding: 20px; }
+    .logo { height: 42px; margin-bottom: 32px; }
+    img.qr { width: 320px; height: 320px; }
+  }
+</style>
+</head>
+<body>
+  <div class="kader">
+    <img class="logo" src="/assets/ekonomika-logo.png" alt="Ekonomika" />
+    <h1>Scan en bestel</h1>
+    <p class="sub">Scan deze code om een drankje te bestellen bij je stand</p>
+    <img class="qr" id="qr" src="/qr.png" alt="QR-code om te bestellen" />
+    <div class="link" id="link"></div>
+    <button onclick="window.print()">Afdrukken</button>
+  </div>
+  <script>
+    document.getElementById("link").textContent = window.location.origin + "/";
+  </script>
+</body>
+</html>
