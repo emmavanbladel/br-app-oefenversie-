@@ -41,7 +41,7 @@
   main { padding: 20px 16px 80px; }
 
   .status-balk {
-    max-width: 720px;
+    max-width: 1180px;
     margin: 0 auto 16px;
     padding: 10px 14px;
     border-radius: 8px;
@@ -56,7 +56,7 @@
   .stip { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; }
 
   #geluid-toestaan {
-    max-width: 720px;
+    max-width: 1180px;
     margin: 0 auto 16px;
     padding: 12px 14px;
     background: #fdf6ea;
@@ -82,7 +82,48 @@
     font-size: 0.85rem;
   }
 
-  .lijst { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+  .kolommen {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 780px) {
+    .kolommen { grid-template-columns: 1fr; }
+  }
+
+  .kolom-kop {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 0 2px;
+  }
+  .kolom-kop h2 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+  }
+  .kolom-kop .telling {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--grijs);
+    border-radius: 999px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .kolom-inkomend .kolom-kop .telling { background: var(--oranje); }
+  .kolom-afgewerkt .kolom-kop .telling { background: var(--groen); }
+
+  .lijst { display: flex; flex-direction: column; gap: 10px; }
 
   .bestelling {
     background: #fff;
@@ -92,7 +133,7 @@
     border-left: 4px solid var(--oranje);
     animation: verschijnen 0.35s ease;
   }
-  .bestelling.geleverd { border-left-color: var(--groen); opacity: 0.6; }
+  .bestelling.geleverd { border-left-color: var(--groen); opacity: 0.75; }
   @keyframes verschijnen {
     from { transform: translateY(-8px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
@@ -128,12 +169,13 @@
   }
 
   .leeg {
-    max-width: 720px;
-    margin: 0 auto;
     text-align: center;
     color: var(--grijs);
-    padding: 60px 20px;
-    font-size: 0.92rem;
+    padding: 40px 16px;
+    font-size: 0.88rem;
+    background: #fff;
+    border: 1px dashed var(--rand);
+    border-radius: 10px;
   }
 </style>
 </head>
@@ -153,16 +195,38 @@
       <button id="geluid-btn">Geluid aanzetten</button>
     </div>
 
-    <div class="lijst" id="lijst">
-      <div class="leeg" id="leeg-bericht">Nog geen bestellingen binnengekomen.</div>
+    <div class="kolommen">
+      <section class="kolom-inkomend">
+        <div class="kolom-kop">
+          <h2>Inkomende bestellingen</h2>
+          <span class="telling" id="telling-inkomend">0</span>
+        </div>
+        <div class="lijst" id="lijst-inkomend">
+          <div class="leeg" id="leeg-inkomend">Nog geen bestellingen binnengekomen.</div>
+        </div>
+      </section>
+
+      <section class="kolom-afgewerkt">
+        <div class="kolom-kop">
+          <h2>Afgewerkte bestellingen</h2>
+          <span class="telling" id="telling-afgewerkt">0</span>
+        </div>
+        <div class="lijst" id="lijst-afgewerkt">
+          <div class="leeg" id="leeg-afgewerkt">Nog geen bestellingen afgewerkt.</div>
+        </div>
+      </section>
     </div>
   </main>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
   const socket = io();
-  const lijst = document.getElementById("lijst");
-  const leegBericht = document.getElementById("leeg-bericht");
+  const lijstInkomend = document.getElementById("lijst-inkomend");
+  const lijstAfgewerkt = document.getElementById("lijst-afgewerkt");
+  const leegInkomend = document.getElementById("leeg-inkomend");
+  const leegAfgewerkt = document.getElementById("leeg-afgewerkt");
+  const tellingInkomend = document.getElementById("telling-inkomend");
+  const tellingAfgewerkt = document.getElementById("telling-afgewerkt");
   let geluidAan = false;
   let audioCtx = null;
 
@@ -245,32 +309,39 @@
     return div;
   }
 
-  function voegBestellingToe(bestelling, bovenaan) {
-    leegBericht.style.display = "none";
-    const bestaand = document.getElementById(`bestelling-${bestelling.id}`);
-    const nieuweEl = renderBestelling(bestelling);
-    if (bestaand) {
-      bestaand.replaceWith(nieuweEl);
-    } else if (bovenaan) {
-      lijst.prepend(nieuweEl);
-    } else {
-      lijst.appendChild(nieuweEl);
-    }
+  function bijwerkenTellingen() {
+    tellingInkomend.textContent = lijstInkomend.querySelectorAll(".bestelling").length;
+    tellingAfgewerkt.textContent = lijstAfgewerkt.querySelectorAll(".bestelling").length;
+    leegInkomend.style.display = lijstInkomend.querySelectorAll(".bestelling").length ? "none" : "";
+    leegAfgewerkt.style.display = lijstAfgewerkt.querySelectorAll(".bestelling").length ? "none" : "";
   }
 
-  lijst.addEventListener("click", async (e) => {
-    if (e.target.classList.contains("afleveren-btn")) {
-      const id = e.target.dataset.id;
-      e.target.disabled = true;
-      e.target.textContent = "Bezig...";
-      try {
-        await fetch(`/api/bestellingen/${id}/geleverd`, { method: "POST" });
-      } catch (err) {
-        e.target.disabled = false;
-        e.target.textContent = "Markeer als geleverd";
-      }
+  function voegBestellingToe(bestelling, bovenaan) {
+    const bestaand = document.getElementById(`bestelling-${bestelling.id}`);
+    if (bestaand) bestaand.remove();
+
+    const nieuweEl = renderBestelling(bestelling);
+    const doelLijst = bestelling.status === "geleverd" ? lijstAfgewerkt : lijstInkomend;
+    if (bovenaan) {
+      doelLijst.prepend(nieuweEl);
+    } else {
+      doelLijst.appendChild(nieuweEl);
     }
-  });
+    bijwerkenTellingen();
+  }
+
+  function afleverenKlik(e) {
+    if (!e.target.classList.contains("afleveren-btn")) return;
+    const id = e.target.dataset.id;
+    e.target.disabled = true;
+    e.target.textContent = "Bezig...";
+    fetch(`/api/bestellingen/${id}/geleverd`, { method: "POST" }).catch(() => {
+      e.target.disabled = false;
+      e.target.textContent = "Markeer als geleverd";
+    });
+  }
+  lijstInkomend.addEventListener("click", afleverenKlik);
+  lijstAfgewerkt.addEventListener("click", afleverenKlik);
 
   socket.on("nieuwe-bestelling", (bestelling) => {
     voegBestellingToe(bestelling, true);
@@ -281,17 +352,19 @@
   });
 
   socket.on("bestelling-bijgewerkt", (bestelling) => {
-    voegBestellingToe(bestelling, false);
+    voegBestellingToe(bestelling, true);
   });
 
   // ---- Bestaande bestellingen laden bij openen pagina ----
   async function laadBestellingen() {
     const res = await fetch("/api/bestellingen");
     const bestellingen = await res.json();
-    if (bestellingen.length === 0) return;
-    leegBericht.style.display = "none";
-    // API geeft nieuwste eerst; we tonen ze in dezelfde volgorde
-    bestellingen.forEach((b) => lijst.appendChild(renderBestelling(b)));
+    // API geeft nieuwste eerst; we tonen ze in dezelfde volgorde per kolom
+    bestellingen.forEach((b) => {
+      const doelLijst = b.status === "geleverd" ? lijstAfgewerkt : lijstInkomend;
+      doelLijst.appendChild(renderBestelling(b));
+    });
+    bijwerkenTellingen();
   }
 
   laadBestellingen();
