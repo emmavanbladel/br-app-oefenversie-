@@ -4,6 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const QRCode = require("qrcode");
 const menu = require("./menu");
+const standen = require("./standen");
 
 const app = express();
 const server = http.createServer(app);
@@ -24,6 +25,11 @@ let volgendId = 1;
 // Menu ophalen (gebruikt door bestelpagina)
 app.get("/api/menu", (req, res) => {
   res.json(menu);
+});
+
+// Lijst met deelnemende bedrijven/standen (gebruikt door de QR-codes-pagina)
+app.get("/api/standen", (req, res) => {
+  res.json(standen);
 });
 
 // Alle bestellingen ophalen (gebruikt door beheerpagina bij het laden)
@@ -73,8 +79,12 @@ app.post("/api/bestellingen/:id/geleverd", (req, res) => {
 
 // QR-code die naar de bestelpagina verwijst, dynamisch gegenereerd op basis van
 // het huidige adres (werkt dus zowel lokaal als na deployen, zonder aanpassing).
+// Met ?bedrijf=Deloitte wordt die naam meegegeven in de link, zodat de
+// bestelpagina automatisch weet voor welke stand de bestelling is.
 app.get("/qr.png", async (req, res) => {
-  const bestelUrl = `${req.protocol}://${req.get("host")}/`;
+  const basisUrl = `${req.protocol}://${req.get("host")}/`;
+  const bedrijf = typeof req.query.bedrijf === "string" ? req.query.bedrijf.trim() : "";
+  const bestelUrl = bedrijf ? `${basisUrl}?bedrijf=${encodeURIComponent(bedrijf)}` : basisUrl;
   try {
     const buffer = await QRCode.toBuffer(bestelUrl, { width: 500, margin: 2 });
     res.type("png").send(buffer);
@@ -92,4 +102,5 @@ server.listen(PORT, () => {
   console.log(`Bestelpagina:  http://localhost:${PORT}/`);
   console.log(`Beheerpagina:  http://localhost:${PORT}/beheer.html`);
   console.log(`QR-code:       http://localhost:${PORT}/qr-code.html`);
+  console.log(`QR per stand:  http://localhost:${PORT}/qr-codes.html`);
 });

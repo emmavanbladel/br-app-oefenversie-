@@ -146,6 +146,18 @@
     border: 1px solid #f3c2c0;
   }
 
+  .bedrijf-vast {
+    display: none;
+    margin: 20px 0 0;
+    padding: 12px 14px;
+    background: #eaf1fb;
+    border: 1px solid #cddcf3;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--blauw-donker);
+  }
+  .bedrijf-vast strong { font-weight: 700; }
+
   .succes-scherm { text-align: center; padding: 12px 0 6px; }
   .succes-scherm .badge {
     width: 52px;
@@ -186,8 +198,11 @@
         <p class="sub">Ekonomika brengt het tot bij jouw stand.</p>
 
         <form id="bestel-form">
-          <label for="bedrijf">Bedrijf / standnaam</label>
-          <input type="text" id="bedrijf" name="bedrijf" placeholder="bv. Deloitte – stand 5" autocomplete="organization" />
+          <div id="bedrijf-veld">
+            <label for="bedrijf">Bedrijf / standnaam</label>
+            <input type="text" id="bedrijf" name="bedrijf" placeholder="bv. Deloitte – stand 5" autocomplete="organization" />
+          </div>
+          <div id="bedrijf-vast" class="bedrijf-vast"></div>
 
           <label>Wat wil je drinken?</label>
           <div class="drank-lijst" id="drank-lijst">
@@ -216,6 +231,17 @@
 <script>
   const aantallen = {};
   let menu = [];
+
+  const vastBedrijf = (new URLSearchParams(window.location.search).get("bedrijf") || "").trim();
+  if (vastBedrijf) {
+    document.getElementById("bedrijf-veld").style.display = "none";
+    const vastEl = document.getElementById("bedrijf-vast");
+    vastEl.textContent = "Je bestelt voor ";
+    const naamEl = document.createElement("strong");
+    naamEl.textContent = vastBedrijf;
+    vastEl.appendChild(naamEl);
+    vastEl.style.display = "block";
+  }
 
   async function laadMenu() {
     const res = await fetch("/api/menu");
@@ -262,7 +288,7 @@
 
   document.getElementById("bestel-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const bedrijf = document.getElementById("bedrijf").value.trim();
+    const bedrijf = vastBedrijf || document.getElementById("bedrijf").value.trim();
     const dranken = Object.entries(aantallen)
       .filter(([, aantal]) => aantal > 0)
       .map(([naam, aantal]) => ({ naam, aantal }));

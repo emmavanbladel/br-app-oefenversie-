@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ekonomika — QR-codes per stand</title>
+<link rel="icon" type="image/png" href="/assets/favicon.png" />
+<style>
+  :root {
+    --blauw: #0a4e9d;
+    --blauw-donker: #073a78;
+    --achtergrond: #f5f6f8;
+    --grijs: #6b7280;
+    --rand: #e2e5eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--achtergrond);
+    color: #1a1a1a;
+  }
+  header {
+    background: #fff;
+    border-bottom: 1px solid var(--rand);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header img { height: 26px; display: block; }
+  header .paginanaam {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--grijs);
+  }
+
+  main { padding: 24px 20px 70px; max-width: 1100px; margin: 0 auto; }
+
+  .kop-rij {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .kop-rij h1 { font-size: 1.2rem; margin: 0 0 4px; color: #111827; }
+  .kop-rij p { margin: 0; color: var(--grijs); font-size: 0.9rem; }
+  .kop-rij button {
+    padding: 11px 20px;
+    border-radius: 8px;
+    border: none;
+    background: var(--blauw);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.92rem;
+    white-space: nowrap;
+  }
+  .kop-rij button:hover { background: var(--blauw-donker); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 18px;
+  }
+  .kaart {
+    background: #fff;
+    border: 1px solid var(--rand);
+    border-radius: 12px;
+    padding: 20px 16px;
+    text-align: center;
+    break-inside: avoid;
+  }
+  .kaart h2 {
+    font-size: 1.05rem;
+    margin: 0 0 12px;
+    color: #111827;
+  }
+  .kaart img {
+    width: 170px;
+    height: 170px;
+    display: block;
+    margin: 0 auto 10px;
+  }
+  .kaart .link {
+    font-size: 0.72rem;
+    color: var(--grijs);
+    word-break: break-all;
+  }
+
+  .leeg {
+    text-align: center;
+    color: var(--grijs);
+    padding: 60px 20px;
+    font-size: 0.92rem;
+  }
+  .leeg a { color: var(--blauw); }
+
+  .voettekst {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 0.85rem;
+    color: var(--grijs);
+  }
+  .voettekst a { color: var(--blauw); }
+
+  @media print {
+    header, .kop-rij button, .voettekst { display: none; }
+    body { background: #fff; }
+    main { padding: 10px; max-width: none; }
+    .kaart { border: 1px dashed #999; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <img src="/assets/ekonomika-logo.png" alt="Ekonomika" />
+    <span class="paginanaam">QR-codes per stand</span>
+  </header>
+
+  <main>
+    <div class="kop-rij">
+      <div>
+        <h1>QR-codes per stand</h1>
+        <p>Druk deze af en plak elke code op de juiste stand. Bezoekers hoeven dan geen bedrijfsnaam meer in te typen.</p>
+      </div>
+      <button onclick="window.print()">Alles afdrukken</button>
+    </div>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="voettekst" id="voettekst" style="display:none;">
+      Stand niet in de lijst? Pas <code>standen.js</code> aan, of gebruik de
+      <a href="/qr-code.html">algemene QR-code</a> zonder vaste standnaam.
+    </div>
+  </main>
+
+<script>
+  async function laadStanden() {
+    const grid = document.getElementById("grid");
+    const res = await fetch("/api/standen");
+    const standen = await res.json();
+
+    if (standen.length === 0) {
+      grid.innerHTML = `
+        <div class="leeg">
+          Nog geen bedrijven ingesteld. Pas <code>standen.js</code> aan met de
+          deelnemende bedrijven en herlaad deze pagina.
+        </div>
+      `;
+      return;
+    }
+
+    const basis = window.location.origin;
+    standen.forEach((naam) => {
+      const bestelUrl = `${basis}/?bedrijf=${encodeURIComponent(naam)}`;
+      const kaart = document.createElement("div");
+      kaart.className = "kaart";
+      kaart.innerHTML = `
+        <h2></h2>
+        <img src="/qr.png?bedrijf=${encodeURIComponent(naam)}" alt="QR-code voor ${naam}" />
+        <div class="link"></div>
+      `;
+      kaart.querySelector("h2").textContent = naam;
+      kaart.querySelector(".link").textContent = bestelUrl;
+      grid.appendChild(kaart);
+    });
+
+    document.getElementById("voettekst").style.display = "block";
+  }
+
+  laadStanden();
+</script>
+</body>
+</html>

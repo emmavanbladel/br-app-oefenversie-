@@ -12,11 +12,12 @@ beheerscherm.
 - **`/beheer.html` – Beheerpagina**: voor vrijwilligers. Toont elke nieuwe
   bestelling meteen (geluid + browsermelding), met een knop "Markeer als
   geleverd".
-- **`/qr-code.html` – QR-code**: genereert automatisch een QR-code die naar
-  de bestelpagina wijst, op basis van waar de app op dat moment draait. Kan
-  je afdrukken en op elke stand plaatsen.
-- Alles gebruikt **één algemene link** — de bezoeker typt zelf zijn
-  bedrijfsnaam/stand in, dus je hoeft geen aparte link per bedrijf te maken.
+- **`/qr-code.html` – Algemene QR-code**: genereert automatisch een QR-code
+  die naar de bestelpagina wijst. De bezoeker typt hier zelf zijn
+  bedrijfsnaam/stand in.
+- **`/qr-codes.html` – QR-code per stand**: genereert een aparte QR-code per
+  bedrijf uit `standen.js`. Wie zo'n code scant, hoeft geen bedrijfsnaam meer
+  in te typen — die staat al vast en er kan meteen besteld worden.
 
 Het is bewust eenvoudig gehouden (in-memory opslag, geen login, geen
 betaling) omdat dit een oefenversie/prototype is. Voor echt gebruik op een
@@ -42,6 +43,24 @@ De app draait dan op `http://localhost:3000`. Open in twee tabbladen:
 
 Open `menu.js` en pas de lijst met drankjes aan. Geen herstart van de code
 nodig buiten een herstart van de server.
+
+## De standen/bedrijven aanpassen (voor QR-codes per stand)
+
+Open `standen.js` en vul de lijst met deelnemende bedrijven in, bv.:
+
+```js
+module.exports = [
+  "Deloitte",
+  "KPMG",
+  "EY",
+  "PwC",
+];
+```
+
+Herstart de server en ga naar `http://localhost:3000/qr-codes.html`. Daar
+staat voor elk bedrijf een eigen QR-code klaar om af te drukken en op de
+juiste stand te plakken. Scant iemand die code, dan wordt de bedrijfsnaam
+automatisch ingevuld en moet er enkel nog een drankje gekozen worden.
 
 ## Live zetten voor een jobbeurs (zodat iedereen erbij kan via hun eigen data/wifi)
 
