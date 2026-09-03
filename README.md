@@ -25,6 +25,12 @@ jobbeurs is dit al volledig bruikbaar; als je het structureel wil inzetten
 kunnen we later een echte database toevoegen zodat bestellingen niet
 verloren gaan bij een herstart van de server.
 
+> **Cloudflare-versie**: in de map [`cloudflare/`](cloudflare/) staat dezelfde
+> app, maar dan volledig herschreven om op Cloudflare Workers te draaien
+> (i.p.v. deze Node/Express-versie die je bv. via Render.com live zet). Zie
+> [`cloudflare/README.md`](cloudflare/README.md) voor installatie- en
+> deploy-instructies.
+
 ## Lokaal uitproberen
 
 Vereist: [Node.js](https://nodejs.org) (versie 18 of hoger).

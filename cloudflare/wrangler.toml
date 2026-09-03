@@ -1,0 +1,16 @@
+name = "ekonomika-drankjes"
+main = "worker/index.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[durable_objects.bindings]]
+name = "BESTELLINGEN_ROOM"
+class_name = "BestellingenRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["BestellingenRoom"]

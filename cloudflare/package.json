@@ -1,0 +1,9 @@
+{
+  "name": "ekonomika-drankjes-cloudflare",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Workers-versie van de Ekonomika drankjesapp (Workers + Durable Objects i.p.v. Express + Socket.io).",
+  "dependencies": {
+    "qrcode": "^1.5.3"
+  }
+}

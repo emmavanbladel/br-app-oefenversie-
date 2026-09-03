@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ekonomika — Beheer bestellingen</title>
+<link rel="icon" type="image/png" href="/assets/favicon.png" />
+<style>
+  :root {
+    --blauw: #0a4e9d;
+    --blauw-donker: #073a78;
+    --achtergrond: #f5f6f8;
+    --groen: #1c8a4b;
+    --grijs: #6b7280;
+    --rand: #e2e5eb;
+    --oranje: #c97a12;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--achtergrond);
+    color: #1a1a1a;
+  }
+  header {
+    background: #fff;
+    border-bottom: 1px solid var(--rand);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header img { height: 26px; display: block; }
+  header .paginanaam {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--grijs);
+  }
+  main { padding: 20px 16px 80px; }
+
+  .status-balk {
+    max-width: 1180px;
+    margin: 0 auto 16px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid transparent;
+  }
+  .status-balk.verbonden { background: #eaf6ef; color: var(--groen); border-color: #cdead9; }
+  .status-balk.niet-verbonden { background: #fdeeee; color: #b3261e; border-color: #f3c2c0; }
+  .stip { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; }
+
+  #geluid-toestaan {
+    max-width: 1180px;
+    margin: 0 auto 16px;
+    padding: 12px 14px;
+    background: #fdf6ea;
+    border: 1px solid #eddcae;
+    color: #7a5a10;
+    border-radius: 8px;
+    font-size: 0.87rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  #geluid-toestaan button {
+    padding: 8px 14px;
+    border-radius: 7px;
+    border: none;
+    background: var(--oranje);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+    font-size: 0.85rem;
+  }
+
+  .kolommen {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 780px) {
+    .kolommen { grid-template-columns: 1fr; }
+  }
+
+  .kolom-kop {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 0 2px;
+  }
+  .kolom-kop h2 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+  }
+  .kolom-kop .telling {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--grijs);
+    border-radius: 999px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .kolom-inkomend .kolom-kop .telling { background: var(--oranje); }
+  .kolom-afgewerkt .kolom-kop .telling { background: var(--groen); }
+
+  .lijst { display: flex; flex-direction: column; gap: 10px; }
+
+  .bestelling {
+    background: #fff;
+    border: 1px solid var(--rand);
+    border-radius: 10px;
+    padding: 15px 17px;
+    border-left: 4px solid var(--oranje);
+    animation: verschijnen 0.35s ease;
+  }
+  .bestelling.geleverd { border-left-color: var(--groen); opacity: 0.75; }
+  @keyframes verschijnen {
+    from { transform: translateY(-8px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .bestelling-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .bedrijf { font-weight: 700; font-size: 1rem; color: #111827; }
+  .tijd { font-size: 0.8rem; color: var(--grijs); white-space: nowrap; }
+  .dranken { font-size: 0.92rem; margin: 0 0 12px; color: #333; }
+  .dranken span.aantal { font-weight: 700; color: var(--blauw); }
+  .acties { display: flex; justify-content: flex-end; }
+  .afleveren-btn {
+    padding: 8px 15px;
+    border-radius: 7px;
+    border: 1.5px solid var(--groen);
+    background: #fff;
+    color: var(--groen);
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.87rem;
+    font-family: inherit;
+  }
+  .afleveren-btn:hover { background: #eaf6ef; }
+  .label-geleverd {
+    font-size: 0.85rem;
+    color: var(--groen);
+    font-weight: 600;
+  }
+
+  .leeg {
+    text-align: center;
+    color: var(--grijs);
+    padding: 40px 16px;
+    font-size: 0.88rem;
+    background: #fff;
+    border: 1px dashed var(--rand);
+    border-radius: 10px;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <img src="/assets/ekonomika-logo.png" alt="Ekonomika" />
+    <span class="paginanaam">Beheer bestellingen</span>
+  </header>
+
+  <main>
+    <div id="verbinding-status" class="status-balk niet-verbonden">
+      <span class="stip"></span> <span id="verbinding-tekst">Verbinden...</span>
+    </div>
+
+    <div id="geluid-toestaan">
+      <span>Zet geluid aan zodat je een melding hoort bij elke nieuwe bestelling.</span>
+      <button id="geluid-btn">Geluid aanzetten</button>
+    </div>
+
+    <div class="kolommen">
+      <section class="kolom-inkomend">
+        <div class="kolom-kop">
+          <h2>Inkomende bestellingen</h2>
+          <span class="telling" id="telling-inkomend">0</span>
+        </div>
+        <div class="lijst" id="lijst-inkomend">
+          <div class="leeg" id="leeg-inkomend">Nog geen bestellingen binnengekomen.</div>
+        </div>
+      </section>
+
+      <section class="kolom-afgewerkt">
+        <div class="kolom-kop">
+          <h2>Afgewerkte bestellingen</h2>
+          <span class="telling" id="telling-afgewerkt">0</span>
+        </div>
+        <div class="lijst" id="lijst-afgewerkt">
+          <div class="leeg" id="leeg-afgewerkt">Nog geen bestellingen afgewerkt.</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+<script>
+  const lijstInkomend = document.getElementById("lijst-inkomend");
+  const lijstAfgewerkt = document.getElementById("lijst-afgewerkt");
+  const leegInkomend = document.getElementById("leeg-inkomend");
+  const leegAfgewerkt = document.getElementById("leeg-afgewerkt");
+  const tellingInkomend = document.getElementById("telling-inkomend");
+  const tellingAfgewerkt = document.getElementById("telling-afgewerkt");
+  let geluidAan = false;
+  let audioCtx = null;
+
+  // ---- Verbindingsstatus ----
+  function zetStatus(verbonden) {
+    const balk = document.getElementById("verbinding-status");
+    const tekst = document.getElementById("verbinding-tekst");
+    balk.className = `status-balk ${verbonden ? "verbonden" : "niet-verbonden"}`;
+    tekst.textContent = verbonden ? "Live verbonden — klaar om bestellingen te ontvangen" : "Geen verbinding... opnieuw proberen";
+  }
+  // ---- Live verbinding (WebSocket via de Durable Object) ----
+  let ws;
+  function verbind() {
+    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+    ws = new WebSocket(`${protocol}//${location.host}/ws`);
+
+    ws.addEventListener("open", () => zetStatus(true));
+    ws.addEventListener("close", () => {
+      zetStatus(false);
+      setTimeout(verbind, 2000);
+    });
+    ws.addEventListener("error", () => ws.close());
+    ws.addEventListener("message", (event) => {
+      const { type, data } = JSON.parse(event.data);
+      if (type === "nieuwe-bestelling") {
+        voegBestellingToe(data, true);
+        if (geluidAan) speelGeluid();
+        toonBrowserMelding(data);
+        document.title = "Nieuwe bestelling — Ekonomika";
+        setTimeout(() => { document.title = "Ekonomika — Beheer bestellingen"; }, 4000);
+      } else if (type === "bestelling-bijgewerkt") {
+        voegBestellingToe(data, true);
+      }
+    });
+  }
+
+  // ---- Geluid ----
+  document.getElementById("geluid-btn").addEventListener("click", () => {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // korte "warming up" beep zodat browsers geluid vanaf nu toestaan
+    speelGeluid();
+    geluidAan = true;
+    document.getElementById("geluid-toestaan").style.display = "none";
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  });
+
+  function speelGeluid() {
+    if (!audioCtx) return;
+    const duur = 0.15;
+    [880, 1175].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      const start = audioCtx.currentTime + i * duur;
+      gain.gain.setValueAtTime(0.2, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + duur);
+      osc.start(start);
+      osc.stop(start + duur);
+    });
+  }
+
+  function toonBrowserMelding(bestelling) {
+    if ("Notification" in window && Notification.permission === "granted") {
+      const drankenTekst = bestelling.dranken.map((d) => `${d.aantal}x ${d.naam}`).join(", ");
+      new Notification("Nieuwe bestelling — " + bestelling.bedrijf, { body: drankenTekst });
+    }
+  }
+
+  // ---- Bestellingen tonen ----
+  function formatTijd(iso) {
+    const d = new Date(iso);
+    return d.toLocaleTimeString("nl-BE", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function renderBestelling(bestelling) {
+    const div = document.createElement("div");
+    div.className = "bestelling" + (bestelling.status === "geleverd" ? " geleverd" : "");
+    div.id = `bestelling-${bestelling.id}`;
+
+    const top = document.createElement("div");
+    top.className = "bestelling-top";
+    const bedrijfEl = document.createElement("span");
+    bedrijfEl.className = "bedrijf";
+    bedrijfEl.textContent = bestelling.bedrijf;
+    const tijdEl = document.createElement("span");
+    tijdEl.className = "tijd";
+    tijdEl.textContent = formatTijd(bestelling.tijdstip);
+    top.append(bedrijfEl, tijdEl);
+
+    const drankenEl = document.createElement("div");
+    drankenEl.className = "dranken";
+    bestelling.dranken.forEach((d, i) => {
+      if (i > 0) drankenEl.append(" · ");
+      const aantalEl = document.createElement("span");
+      aantalEl.className = "aantal";
+      aantalEl.textContent = `${d.aantal}x`;
+      drankenEl.append(aantalEl, ` ${d.naam}`);
+    });
+
+    const actiesEl = document.createElement("div");
+    actiesEl.className = "acties";
+    if (bestelling.status === "geleverd") {
+      const label = document.createElement("span");
+      label.className = "label-geleverd";
+      label.textContent = "Geleverd";
+      actiesEl.appendChild(label);
+    } else {
+      const btn = document.createElement("button");
+      btn.className = "afleveren-btn";
+      btn.dataset.id = bestelling.id;
+      btn.textContent = "Markeer als geleverd";
+      actiesEl.appendChild(btn);
+    }
+
+    div.append(top, drankenEl, actiesEl);
+    return div;
+  }
+
+  function bijwerkenTellingen() {
+    tellingInkomend.textContent = lijstInkomend.querySelectorAll(".bestelling").length;
+    tellingAfgewerkt.textContent = lijstAfgewerkt.querySelectorAll(".bestelling").length;
+    leegInkomend.style.display = lijstInkomend.querySelectorAll(".bestelling").length ? "none" : "";
+    leegAfgewerkt.style.display = lijstAfgewerkt.querySelectorAll(".bestelling").length ? "none" : "";
+  }
+
+  function voegBestellingToe(bestelling, bovenaan) {
+    const bestaand = document.getElementById(`bestelling-${bestelling.id}`);
+    if (bestaand) bestaand.remove();
+
+    const nieuweEl = renderBestelling(bestelling);
+    const doelLijst = bestelling.status === "geleverd" ? lijstAfgewerkt : lijstInkomend;
+    if (bovenaan) {
+      doelLijst.prepend(nieuweEl);
+    } else {
+      doelLijst.appendChild(nieuweEl);
+    }
+    bijwerkenTellingen();
+  }
+
+  function afleverenKlik(e) {
+    if (!e.target.classList.contains("afleveren-btn")) return;
+    const id = e.target.dataset.id;
+    e.target.disabled = true;
+    e.target.textContent = "Bezig...";
+    fetch(`/api/bestellingen/${id}/geleverd`, { method: "POST" }).catch(() => {
+      e.target.disabled = false;
+      e.target.textContent = "Markeer als geleverd";
+    });
+  }
+  lijstInkomend.addEventListener("click", afleverenKlik);
+  lijstAfgewerkt.addEventListener("click", afleverenKlik);
+
+  // ---- Bestaande bestellingen laden bij openen pagina ----
+  async function laadBestellingen() {
+    const res = await fetch("/api/bestellingen");
+    const bestellingen = await res.json();
+    // API geeft nieuwste eerst; we tonen ze in dezelfde volgorde per kolom
+    bestellingen.forEach((b) => {
+      const doelLijst = b.status === "geleverd" ? lijstAfgewerkt : lijstInkomend;
+      doelLijst.appendChild(renderBestelling(b));
+    });
+    bijwerkenTellingen();
+  }
+
+  laadBestellingen();
+  verbind();
+</script>
+</body>
+</html>
