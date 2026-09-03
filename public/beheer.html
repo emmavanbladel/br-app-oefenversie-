@@ -288,24 +288,42 @@
     div.className = "bestelling" + (bestelling.status === "geleverd" ? " geleverd" : "");
     div.id = `bestelling-${bestelling.id}`;
 
-    const drankenHtml = bestelling.dranken
-      .map((d) => `<span class="aantal">${d.aantal}x</span> ${d.naam}`)
-      .join(" · ");
+    const top = document.createElement("div");
+    top.className = "bestelling-top";
+    const bedrijfEl = document.createElement("span");
+    bedrijfEl.className = "bedrijf";
+    bedrijfEl.textContent = bestelling.bedrijf;
+    const tijdEl = document.createElement("span");
+    tijdEl.className = "tijd";
+    tijdEl.textContent = formatTijd(bestelling.tijdstip);
+    top.append(bedrijfEl, tijdEl);
 
-    div.innerHTML = `
-      <div class="bestelling-top">
-        <span class="bedrijf">${bestelling.bedrijf}</span>
-        <span class="tijd">${formatTijd(bestelling.tijdstip)}</span>
-      </div>
-      <div class="dranken">${drankenHtml}</div>
-      <div class="acties">
-        ${
-          bestelling.status === "geleverd"
-            ? `<span class="label-geleverd">Geleverd</span>`
-            : `<button class="afleveren-btn" data-id="${bestelling.id}">Markeer als geleverd</button>`
-        }
-      </div>
-    `;
+    const drankenEl = document.createElement("div");
+    drankenEl.className = "dranken";
+    bestelling.dranken.forEach((d, i) => {
+      if (i > 0) drankenEl.append(" · ");
+      const aantalEl = document.createElement("span");
+      aantalEl.className = "aantal";
+      aantalEl.textContent = `${d.aantal}x`;
+      drankenEl.append(aantalEl, ` ${d.naam}`);
+    });
+
+    const actiesEl = document.createElement("div");
+    actiesEl.className = "acties";
+    if (bestelling.status === "geleverd") {
+      const label = document.createElement("span");
+      label.className = "label-geleverd";
+      label.textContent = "Geleverd";
+      actiesEl.appendChild(label);
+    } else {
+      const btn = document.createElement("button");
+      btn.className = "afleveren-btn";
+      btn.dataset.id = bestelling.id;
+      btn.textContent = "Markeer als geleverd";
+      actiesEl.appendChild(btn);
+    }
+
+    div.append(top, drankenEl, actiesEl);
     return div;
   }
 
