@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ekonomika — Instellingen</title>
+<link rel="icon" type="image/png" href="/assets/favicon.png" />
+<style>
+  :root {
+    --blauw: #0a4e9d;
+    --blauw-donker: #073a78;
+    --achtergrond: #f5f6f8;
+    --groen: #1c8a4b;
+    --grijs: #6b7280;
+    --rand: #e2e5eb;
+    --rood: #b3261e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--achtergrond);
+    color: #1a1a1a;
+  }
+  header {
+    background: #fff;
+    border-bottom: 1px solid var(--rand);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header img { height: 26px; display: block; }
+  header .paginanaam {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--grijs);
+  }
+  header nav a {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--blauw);
+    text-decoration: none;
+    margin-left: 16px;
+  }
+
+  main { max-width: 720px; margin: 0 auto; padding: 24px 16px 70px; }
+
+  .kaart {
+    background: #fff;
+    border: 1px solid var(--rand);
+    border-radius: 12px;
+    padding: 22px 24px;
+    margin-bottom: 20px;
+  }
+  .kaart h2 { font-size: 1.05rem; margin: 0 0 6px; color: #111827; }
+  .kaart p.uitleg { color: var(--grijs); font-size: 0.88rem; margin: 0 0 16px; line-height: 1.4; }
+
+  textarea {
+    width: 100%;
+    min-height: 110px;
+    padding: 11px 13px;
+    font-size: 0.95rem;
+    border: 1.5px solid var(--rand);
+    border-radius: 8px;
+    outline: none;
+    font-family: inherit;
+    resize: vertical;
+  }
+  textarea:focus { border-color: var(--blauw); }
+
+  input[type="text"] {
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    border: 1.5px solid var(--rand);
+    border-radius: 8px;
+    outline: none;
+    font-family: inherit;
+  }
+  input[type="text"]:focus { border-color: var(--blauw); }
+
+  .rij { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  button {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    background: var(--blauw);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+  button:hover { background: var(--blauw-donker); }
+  button:disabled { background: #b7c4d9; cursor: not-allowed; }
+  button.klein-knop {
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    background: #fff;
+    border: 1.5px solid var(--rand);
+    color: #333;
+  }
+  button.klein-knop:hover { background: var(--achtergrond); }
+  button.verwijder-knop { color: var(--rood); border-color: #f3c2c0; }
+  button.verwijder-knop:hover { background: #fdeeee; }
+
+  .lijst { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .lijst-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 4px;
+    border-bottom: 1px solid var(--rand);
+    font-size: 0.92rem;
+  }
+  .lijst-item:last-child { border-bottom: none; }
+  .lijst-item .naam.actief { color: var(--groen); font-weight: 700; }
+  .lijst-item .naam.actief::after { content: " (actief)"; font-weight: 600; font-size: 0.8rem; }
+
+  .leeg { color: var(--grijs); font-size: 0.88rem; padding: 10px 2px; }
+
+  .melding {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 7px;
+    font-size: 0.85rem;
+    display: none;
+  }
+  .melding.fout { display: block; background: #fdeeee; color: var(--rood); border: 1px solid #f3c2c0; }
+  .melding.ok { display: block; background: #eaf6ef; color: var(--groen); border: 1px solid #cdead9; }
+</style>
+</head>
+<body>
+  <header>
+    <img src="/assets/ekonomika-logo.png" alt="Ekonomika" />
+    <span class="paginanaam">Instellingen</span>
+    <nav><a href="/beheer.html">Beheer bestellingen</a></nav>
+  </header>
+
+  <main>
+    <div class="kaart">
+      <h2>Actief evenement</h2>
+      <p class="uitleg">
+        Alle bestellingen, standen en het menu zijn gekoppeld aan het evenement dat hier actief staat.
+        Start een nieuw evenement voor een volgende jobbeurs — oude gegevens blijven bewaard, maar
+        worden niet meer getoond.
+      </p>
+      <div id="actief-evenement-naam" style="font-weight:700; margin-bottom:14px;"></div>
+      <div class="rij">
+        <input type="text" id="nieuw-evenement-naam" placeholder="Naam nieuw evenement (bv. Jobbeurs 2027)" style="flex:1; min-width:220px;" />
+        <button id="nieuw-evenement-btn">Start nieuw evenement</button>
+      </div>
+      <div id="evenement-melding" class="melding"></div>
+      <div class="lijst" id="evenementen-lijst"></div>
+    </div>
+
+    <div class="kaart">
+      <h2>Standen</h2>
+      <p class="uitleg">Plak hieronder één bedrijfsnaam per lijn. Bestaande namen worden overgeslagen.</p>
+      <textarea id="standen-tekst" placeholder="Deloitte&#10;KPMG&#10;EY"></textarea>
+      <div class="rij" style="margin-top:10px;">
+        <button id="standen-import-btn">Importeren</button>
+      </div>
+      <div id="standen-melding" class="melding"></div>
+      <div class="lijst" id="standen-lijst"></div>
+    </div>
+
+    <div class="kaart">
+      <h2>Menu</h2>
+      <p class="uitleg">Plak hieronder één drankje per lijn. Bestaande namen worden overgeslagen.</p>
+      <textarea id="menu-tekst" placeholder="Water (plat)&#10;Cola&#10;Koffie"></textarea>
+      <div class="rij" style="margin-top:10px;">
+        <button id="menu-import-btn">Importeren</button>
+      </div>
+      <div id="menu-melding" class="melding"></div>
+      <div class="lijst" id="menu-lijst"></div>
+    </div>
+  </main>
+
+<script>
+  function toonMelding(el, tekst, type) {
+    el.textContent = tekst;
+    el.className = `melding ${type}`;
+  }
+
+  // ---- Evenementen ----
+
+  async function laadEvenementen() {
+    const res = await fetch("/api/admin/evenementen");
+    const evenementen = await res.json();
+    const actief = evenementen.find((e) => e.actief);
+    document.getElementById("actief-evenement-naam").textContent = actief ? `Nu actief: ${actief.naam}` : "Geen actief evenement";
+
+    const lijst = document.getElementById("evenementen-lijst");
+    const overige = evenementen.filter((e) => !e.actief);
+    if (overige.length === 0) {
+      lijst.innerHTML = '<div class="leeg">Geen eerdere evenementen.</div>';
+      return;
+    }
+    lijst.innerHTML = "";
+    overige.forEach((e) => {
+      const rij = document.createElement("div");
+      rij.className = "lijst-item";
+      rij.innerHTML = `<span>${e.naam}</span>`;
+      const btn = document.createElement("button");
+      btn.className = "klein-knop";
+      btn.textContent = "Activeer";
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        await fetch(`/api/admin/evenementen/${e.id}/activeren`, { method: "POST" });
+        await laadAlles();
+      });
+      rij.appendChild(btn);
+      lijst.appendChild(rij);
+    });
+  }
+
+  document.getElementById("nieuw-evenement-btn").addEventListener("click", async () => {
+    const input = document.getElementById("nieuw-evenement-naam");
+    const melding = document.getElementById("evenement-melding");
+    const naam = input.value.trim();
+    if (!naam) {
+      toonMelding(melding, "Geef het nieuwe evenement een naam.", "fout");
+      return;
+    }
+    const res = await fetch("/api/admin/evenementen", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ naam }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toonMelding(melding, data.error || "Kon evenement niet aanmaken.", "fout");
+      return;
+    }
+    input.value = "";
+    toonMelding(melding, `"${naam}" is nu het actieve evenement. Vergeet niet standen en menu opnieuw te plakken.`, "ok");
+    await laadAlles();
+  });
+
+  // ---- Standen ----
+
+  async function laadStanden() {
+    const res = await fetch("/api/standen");
+    const standen = await res.json();
+    const lijst = document.getElementById("standen-lijst");
+    if (standen.length === 0) {
+      lijst.innerHTML = '<div class="leeg">Nog geen standen voor dit evenement.</div>';
+      return;
+    }
+    lijst.innerHTML = "";
+    standen.forEach((s) => {
+      const rij = document.createElement("div");
+      rij.className = "lijst-item";
+      rij.innerHTML = `<span>${s.naam}</span>`;
+      const btn = document.createElement("button");
+      btn.className = "klein-knop verwijder-knop";
+      btn.textContent = "Verwijder";
+      btn.addEventListener("click", async () => {
+        if (!confirm(`"${s.naam}" verwijderen?`)) return;
+        await fetch(`/api/admin/standen/${s.id}`, { method: "DELETE" });
+        laadStanden();
+      });
+      rij.appendChild(btn);
+      lijst.appendChild(rij);
+    });
+  }
+
+  document.getElementById("standen-import-btn").addEventListener("click", async () => {
+    const tekst = document.getElementById("standen-tekst").value;
+    const melding = document.getElementById("standen-melding");
+    const res = await fetch("/api/admin/standen/importeer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tekst }),
+    });
+    const data = await res.json();
+    toonMelding(melding, `${data.toegevoegd.length} nieuwe stand(en) toegevoegd.`, "ok");
+    document.getElementById("standen-tekst").value = "";
+    laadStanden();
+  });
+
+  // ---- Menu ----
+
+  async function laadMenu() {
+    const res = await fetch("/api/admin/menu");
+    const items = await res.json();
+    const lijst = document.getElementById("menu-lijst");
+    if (items.length === 0) {
+      lijst.innerHTML = '<div class="leeg">Nog geen drankjes voor dit evenement.</div>';
+      return;
+    }
+    lijst.innerHTML = "";
+    items.forEach((item) => {
+      const rij = document.createElement("div");
+      rij.className = "lijst-item";
+      rij.innerHTML = `<span>${item.naam}</span>`;
+      const btn = document.createElement("button");
+      btn.className = "klein-knop verwijder-knop";
+      btn.textContent = "Verwijder";
+      btn.addEventListener("click", async () => {
+        if (!confirm(`"${item.naam}" verwijderen?`)) return;
+        await fetch(`/api/admin/menu/${item.id}`, { method: "DELETE" });
+        laadMenu();
+      });
+      rij.appendChild(btn);
+      lijst.appendChild(rij);
+    });
+  }
+
+  document.getElementById("menu-import-btn").addEventListener("click", async () => {
+    const tekst = document.getElementById("menu-tekst").value;
+    const melding = document.getElementById("menu-melding");
+    const res = await fetch("/api/admin/menu/importeer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tekst }),
+    });
+    const data = await res.json();
+    toonMelding(melding, `${data.toegevoegd.length} nieuw(e) drankje(s) toegevoegd.`, "ok");
+    document.getElementById("menu-tekst").value = "";
+    laadMenu();
+  });
+
+  async function laadAlles() {
+    await Promise.all([laadEvenementen(), laadStanden(), laadMenu()]);
+  }
+
+  laadAlles();
+</script>
+</body>
+</html>

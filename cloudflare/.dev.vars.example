@@ -1,0 +1,11 @@
+# Kopieer dit bestand naar ".dev.vars" (die naam staat al in .gitignore, dus
+# hij wordt nooit gecommit) en vul de echte waarden in vanuit je Supabase-project
+# onder Settings -> API -> "API Keys".
+#
+# LET OP: gebruik hier de "secret" key (sb_secret_..., soms ook "service_role"
+# genoemd bij oudere projecten) - NIET de "publishable"/"anon" key. Enkel de
+# Worker praat met Supabase, dus deze secret key mag hier veilig lokaal staan
+# (nooit gecommit). Zet hem nooit in code die naar de browser gaat.
+
+SUPABASE_URL=https://JOUW-PROJECT-REF.supabase.co
+SUPABASE_SECRET_KEY=plak-hier-je-secret-key

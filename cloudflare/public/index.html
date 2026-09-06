@@ -231,16 +231,42 @@
 <script>
   const aantallen = {};
   let menu = [];
+  let vastBedrijf = "";
+  let vastStandId = null;
 
-  const vastBedrijf = (new URLSearchParams(window.location.search).get("bedrijf") || "").trim();
-  if (vastBedrijf) {
+  const standId = new URLSearchParams(window.location.search).get("stand");
+
+  async function laadVasteStand() {
+    if (!standId) return;
     document.getElementById("bedrijf-veld").style.display = "none";
     const vastEl = document.getElementById("bedrijf-vast");
-    vastEl.textContent = "Je bestelt voor ";
-    const naamEl = document.createElement("strong");
-    naamEl.textContent = vastBedrijf;
-    vastEl.appendChild(naamEl);
-    vastEl.style.display = "block";
+
+    try {
+      const res = await fetch(`/api/standen/${standId}`);
+      if (res.status === 410) {
+        vastEl.textContent = "Deze QR-code hoort bij een eerdere jobbeurs. Vraag een vrijwilliger om een nieuwe code.";
+        vastEl.style.display = "block";
+        document.getElementById("bestel-btn").disabled = true;
+        return;
+      }
+      if (!res.ok) {
+        vastEl.textContent = "Deze QR-code is niet gevonden. Vraag een vrijwilliger om hulp.";
+        vastEl.style.display = "block";
+        document.getElementById("bestel-btn").disabled = true;
+        return;
+      }
+      const stand = await res.json();
+      vastStandId = stand.id;
+      vastBedrijf = stand.naam;
+      vastEl.textContent = "Je bestelt voor ";
+      const naamEl = document.createElement("strong");
+      naamEl.textContent = vastBedrijf;
+      vastEl.appendChild(naamEl);
+      vastEl.style.display = "block";
+    } catch {
+      vastEl.textContent = "Kon de stand niet laden. Controleer je internetverbinding.";
+      vastEl.style.display = "block";
+    }
   }
 
   async function laadMenu() {
@@ -307,10 +333,11 @@
     btn.textContent = "Bezig met versturen...";
 
     try {
+      const payload = vastStandId ? { stand_id: vastStandId, dranken } : { bedrijf, dranken };
       const res = await fetch("/api/bestellingen", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bedrijf, dranken }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -337,6 +364,7 @@
     document.getElementById("bestel-scherm").style.display = "block";
   });
 
+  laadVasteStand();
   laadMenu();
 </script>
 </body>

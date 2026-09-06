@@ -135,8 +135,8 @@
     <div class="grid" id="grid"></div>
 
     <div class="voettekst" id="voettekst" style="display:none;">
-      Stand niet in de lijst? Pas <code>standen.js</code> aan, of gebruik de
-      <a href="/qr-code.html">algemene QR-code</a> zonder vaste standnaam.
+      Stand niet in de lijst? Voeg ze toe via <a href="/instellingen.html">instellingen.html</a>,
+      of gebruik de <a href="/qr-code.html">algemene QR-code</a> zonder vaste standnaam.
     </div>
   </main>
 
@@ -149,21 +149,21 @@
     if (standen.length === 0) {
       grid.innerHTML = `
         <div class="leeg">
-          Nog geen bedrijven ingesteld. Pas <code>standen.js</code> aan met de
-          deelnemende bedrijven en herlaad deze pagina.
+          Nog geen bedrijven ingesteld. Voeg ze toe via
+          <a href="/instellingen.html">instellingen.html</a> en herlaad deze pagina.
         </div>
       `;
       return;
     }
 
     const basis = window.location.origin;
-    standen.forEach((naam) => {
-      const bestelUrl = `${basis}/?bedrijf=${encodeURIComponent(naam)}`;
+    standen.forEach(({ id, naam }) => {
+      const bestelUrl = `${basis}/?stand=${id}`;
       const kaart = document.createElement("div");
       kaart.className = "kaart";
       kaart.innerHTML = `
         <h2></h2>
-        <img src="/qr.png?bedrijf=${encodeURIComponent(naam)}" alt="QR-code voor ${naam}" />
+        <img src="/qr.png?stand_id=${id}" alt="QR-code voor ${naam}" />
         <div class="link"></div>
       `;
       kaart.querySelector("h2").textContent = naam;
