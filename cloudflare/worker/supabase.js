@@ -18,8 +18,11 @@ async function supabaseFetch(env, path, init = {}) {
     const tekst = await res.text().catch(() => "");
     throw new Error(`Supabase-fout (${res.status}) op ${path}: ${tekst}`);
   }
-  if (res.status === 204) return null;
-  return res.json();
+  // Een POST zonder "Prefer: return=representation" (zoals onze
+  // bestelling_items-insert) komt terug met een lege body — niets om te
+  // parsen dan.
+  const tekst = await res.text();
+  return tekst ? JSON.parse(tekst) : null;
 }
 
 // Welke beurs is er op dit moment actief? Bepaalt welk menu/welke standen/
