@@ -6,17 +6,41 @@ op Cloudflare te draaien:
 | Node-versie (map hierboven)      | Cloudflare-versie (deze map)                |
 |-----------------------------------|----------------------------------------------|
 | Express (server.js)               | Cloudflare Worker (`worker/index.js`)        |
-| In-memory array met bestellingen  | Durable Object (`worker/bestellingen-room.js`) |
-| Socket.io                         | Native WebSockets                            |
+| In-memory array met bestellingen  | Supabase-database (`bestellingen`, `bestelling_items`) |
+| menu.js / standen.js              | Supabase-tabellen (`menu_items`, `standen`)  |
+| Socket.io                         | Native WebSockets, via een Durable Object (`worker/bestellingen-room.js`) die enkel nog de live verbinding beheert |
 | `npm start` / Render.com          | `wrangler deploy`                            |
 
 De bestelpagina, het beheerscherm en de QR-codes zien er visueel identiek uit
 aan de Node-versie — enkel de manier waarop de server werkt is anders.
 
-`menu.js` en `standen.js` in de hoofdmap van het project zijn de **enige**
-plek waar je het drankenaanbod en de deelnemende bedrijven aanpast; deze
-Cloudflare-versie leest die bestanden rechtstreeks in, dus je hoeft niets te
-dupliceren.
+Menu, standen en bestellingen staan in Supabase (project `ekonomika-drankjes`),
+gestructureerd per **beurs** (tabel `evenementen`). Welke beurs actief is,
+bepaalt de rij in `instellingen.actief_evenement_id`. Wijzigingen in
+`menu_items`/`standen` via Supabase's Table Editor zijn direct zichtbaar in de
+app, zonder her-deployen.
+
+## Supabase koppelen (eenmalig)
+
+De Worker praat met Supabase via twee omgevingsvariabelen:
+
+- `SUPABASE_URL` — staat al in `wrangler.toml` (niet geheim, gewoon het
+  project-adres).
+- `SUPABASE_SERVICE_ROLE_KEY` — **wél geheim**, moet je zelf toevoegen, nooit
+  in een bestand committen.
+
+Zo voeg je die laatste toe:
+1. Ga in Supabase naar **Project Settings → API**.
+2. Kopieer de **`service_role`**-sleutel (niet de `anon`-sleutel).
+3. Ga in Cloudflare naar je Worker → **Settings → Variables and Secrets**.
+4. Klik **Add** → type **Secret** → naam `SUPABASE_SERVICE_ROLE_KEY` → plak de
+   sleutel → **Save**.
+
+Voor lokaal testen met `wrangler dev`: maak een bestand `.dev.vars` in deze map
+(staat al in `.gitignore`, komt dus nooit op GitHub terecht) met:
+```
+SUPABASE_SERVICE_ROLE_KEY=plak-hier-je-service-role-sleutel
+```
 
 ## Eenmalig instellen
 
@@ -57,9 +81,9 @@ om dat samen in te stellen.
 
 ## Belangrijk om te weten
 
-- **Bestellingen blijven bewaard**, ook bij een herdeploy — die zitten in de
-  Durable Object, niet enkel in het geheugen van één server zoals bij de
-  Node-versie. Ze verdwijnen pas als je de Durable Object expliciet leegmaakt.
+- **Bestellingen staan in Supabase**, dus die overleven een herdeploy of een
+  herstart probleemloos — en je kan ze ook rechtstreeks bekijken/aanpassen via
+  Supabase's Table Editor.
 - **QR-codes (`/qr.png`)** worden gegenereerd met dezelfde `qrcode`-package
   als de Node-versie. Cloudflare Workers zijn geen Node.js-omgeving, dus dit
   leunt op de `nodejs_compat`-instelling in `wrangler.toml` om dat pakket te

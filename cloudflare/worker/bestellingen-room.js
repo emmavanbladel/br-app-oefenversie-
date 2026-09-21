@@ -1,21 +1,15 @@
-// Eén Durable Object-instantie houdt alle bestellingen van het evenement bij
-// (net als de in-memory lijst in de Node-versie) en stuurt updates live door
-// naar elk verbonden beheerscherm via WebSockets.
+import { getActiefEvenementId, haalBestellingen, maakBestelling, markeerGeleverd } from "./supabase.js";
+
+// Deze Durable Object bewaart zelf geen bestellingen meer (dat gebeurt in
+// Supabase) — ze is enkel nog de live verbinding: houdt de WebSockets van de
+// beheerschermen bij en zendt uit zodra er iets wijzigt in de database.
 export class BestellingenRoom {
   constructor(ctx, env) {
     this.ctx = ctx;
-    this.bestellingen = [];
-    this.volgendId = 1;
-    this.klaar = ctx.blockConcurrencyWhile(async () => {
-      const opgeslagen = await ctx.storage.get("bestellingen");
-      const opgeslagenId = await ctx.storage.get("volgendId");
-      if (opgeslagen) this.bestellingen = opgeslagen;
-      if (opgeslagenId) this.volgendId = opgeslagenId;
-    });
+    this.env = env;
   }
 
   async fetch(request) {
-    await this.klaar;
     const url = new URL(request.url);
 
     if (url.pathname === "/ws") {
@@ -27,60 +21,50 @@ export class BestellingenRoom {
       return new Response(null, { status: 101, webSocket: pair[0] });
     }
 
-    if (url.pathname === "/api/bestellingen" && request.method === "GET") {
-      return Response.json(this.bestellingen);
-    }
-
-    if (url.pathname === "/api/bestellingen" && request.method === "POST") {
-      let body;
-      try {
-        body = await request.json();
-      } catch {
-        return Response.json({ error: "Ongeldige aanvraag." }, { status: 400 });
-      }
-      const { bedrijf, dranken } = body;
-
-      if (!bedrijf || typeof bedrijf !== "string" || !bedrijf.trim()) {
-        return Response.json({ error: "Bedrijfs-/standnaam is verplicht." }, { status: 400 });
-      }
-      if (!Array.isArray(dranken) || dranken.length === 0) {
-        return Response.json({ error: "Kies minstens één drankje." }, { status: 400 });
+    try {
+      if (url.pathname === "/api/bestellingen" && request.method === "GET") {
+        const evenementId = await getActiefEvenementId(this.env);
+        return Response.json(await haalBestellingen(this.env, evenementId));
       }
 
-      const nieuweBestelling = {
-        id: this.volgendId++,
-        bedrijf: bedrijf.trim(),
-        dranken,
-        status: "nieuw",
-        tijdstip: new Date().toISOString(),
-      };
+      if (url.pathname === "/api/bestellingen" && request.method === "POST") {
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: "Ongeldige aanvraag." }, { status: 400 });
+        }
+        const { bedrijf, dranken } = body;
 
-      this.bestellingen.unshift(nieuweBestelling);
-      await this.bewaar();
-      this.uitzenden("nieuwe-bestelling", nieuweBestelling);
+        if (!bedrijf || typeof bedrijf !== "string" || !bedrijf.trim()) {
+          return Response.json({ error: "Bedrijfs-/standnaam is verplicht." }, { status: 400 });
+        }
+        if (!Array.isArray(dranken) || dranken.length === 0) {
+          return Response.json({ error: "Kies minstens één drankje." }, { status: 400 });
+        }
 
-      return Response.json(nieuweBestelling, { status: 201 });
-    }
-
-    const match = url.pathname.match(/^\/api\/bestellingen\/(\d+)\/geleverd$/);
-    if (match && request.method === "POST") {
-      const id = parseInt(match[1], 10);
-      const bestelling = this.bestellingen.find((b) => b.id === id);
-      if (!bestelling) {
-        return Response.json({ error: "Bestelling niet gevonden." }, { status: 404 });
+        const evenementId = await getActiefEvenementId(this.env);
+        const nieuweBestelling = await maakBestelling(this.env, evenementId, bedrijf.trim(), dranken);
+        this.uitzenden("nieuwe-bestelling", nieuweBestelling);
+        return Response.json(nieuweBestelling, { status: 201 });
       }
-      bestelling.status = "geleverd";
-      await this.bewaar();
-      this.uitzenden("bestelling-bijgewerkt", bestelling);
-      return Response.json(bestelling);
+
+      const match = url.pathname.match(/^\/api\/bestellingen\/(\d+)\/geleverd$/);
+      if (match && request.method === "POST") {
+        const id = parseInt(match[1], 10);
+        const evenementId = await getActiefEvenementId(this.env);
+        const bestelling = await markeerGeleverd(this.env, evenementId, id);
+        if (!bestelling) {
+          return Response.json({ error: "Bestelling niet gevonden." }, { status: 404 });
+        }
+        this.uitzenden("bestelling-bijgewerkt", bestelling);
+        return Response.json(bestelling);
+      }
+    } catch (err) {
+      return Response.json({ error: err.message }, { status: 500 });
     }
 
     return new Response("Not found", { status: 404 });
-  }
-
-  async bewaar() {
-    await this.ctx.storage.put("bestellingen", this.bestellingen);
-    await this.ctx.storage.put("volgendId", this.volgendId);
   }
 
   uitzenden(type, data) {

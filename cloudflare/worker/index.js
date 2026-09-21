@@ -1,7 +1,6 @@
 import QRCode from "qrcode";
 import { BestellingenRoom } from "./bestellingen-room.js";
-import menu from "../../menu.js";
-import standen from "../../standen.js";
+import { getActiefEvenementId, haalMenu, haalStanden } from "./supabase.js";
 
 export { BestellingenRoom };
 
@@ -18,11 +17,21 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/menu") {
-      return Response.json(menu);
+      try {
+        const evenementId = await getActiefEvenementId(env);
+        return Response.json(await haalMenu(env, evenementId));
+      } catch (err) {
+        return Response.json({ error: err.message }, { status: 500 });
+      }
     }
 
     if (url.pathname === "/api/standen") {
-      return Response.json(standen);
+      try {
+        const evenementId = await getActiefEvenementId(env);
+        return Response.json(await haalStanden(env, evenementId));
+      } catch (err) {
+        return Response.json({ error: err.message }, { status: 500 });
+      }
     }
 
     if (url.pathname === "/qr.png") {
