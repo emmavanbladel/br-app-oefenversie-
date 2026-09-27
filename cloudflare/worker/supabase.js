@@ -18,15 +18,17 @@ async function supabaseFetch(env, path, init = {}) {
     const tekst = await res.text().catch(() => "");
     throw new Error(`Supabase-fout (${res.status}) op ${path}: ${tekst}`);
   }
-  // Een POST zonder "Prefer: return=representation" (zoals onze
-  // bestelling_items-insert) komt terug met een lege body — niets om te
-  // parsen dan.
+  // Een POST/PATCH/DELETE zonder "Prefer: return=representation" komt terug
+  // met een lege body — niets om te parsen dan.
   const tekst = await res.text();
   return tekst ? JSON.parse(tekst) : null;
 }
 
+// ---- Actieve beurs ----
+
 // Welke beurs is er op dit moment actief? Bepaalt welk menu/welke standen/
-// bestellingen de app toont.
+// bestellingen de app toont wanneer een link geen expliciete ?evenement=
+// meegeeft (bv. de algemene QR-code).
 export async function getActiefEvenementId(env) {
   const rijen = await supabaseFetch(env, "instellingen?select=actief_evenement_id&limit=1");
   const id = rijen?.[0]?.actief_evenement_id;
@@ -35,6 +37,15 @@ export async function getActiefEvenementId(env) {
   }
   return id;
 }
+
+export async function zetActiefEvenement(env, evenementId) {
+  await supabaseFetch(env, "instellingen?id=eq.1", {
+    method: "PATCH",
+    body: JSON.stringify({ actief_evenement_id: evenementId }),
+  });
+}
+
+// ---- Bestelpagina ----
 
 export async function haalMenu(env, evenementId) {
   const rijen = await supabaseFetch(
@@ -113,4 +124,82 @@ export async function markeerGeleverd(env, evenementId, id) {
 
   const items = await supabaseFetch(env, `bestelling_items?bestelling_id=eq.${id}&select=naam,aantal`);
   return mapBestelling({ ...rijen[0], bestelling_items: items });
+}
+
+// ---- Admin: beurzen ----
+
+export async function haalEvenementen(env) {
+  const [evenementen, instellingen] = await Promise.all([
+    supabaseFetch(env, "evenementen?select=id,naam,aangemaakt_op&order=id.asc"),
+    supabaseFetch(env, "instellingen?select=actief_evenement_id&limit=1"),
+  ]);
+  const actiefId = instellingen?.[0]?.actief_evenement_id ?? null;
+  return evenementen.map((e) => ({ ...e, actief: e.id === actiefId }));
+}
+
+export async function maakEvenement(env, naam) {
+  const [nieuw] = await supabaseFetch(env, "evenementen", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({ naam }),
+  });
+  return nieuw;
+}
+
+// ---- Admin: standen (partners) ----
+
+export async function haalStandenBeheer(env, evenementId) {
+  return supabaseFetch(
+    env,
+    `standen?evenement_id=eq.${evenementId}&select=id,naam,stand_nummer&order=naam.asc`
+  );
+}
+
+export async function voegStandToe(env, evenementId, naam, standNummer) {
+  const [nieuw] = await supabaseFetch(env, "standen", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      evenement_id: evenementId,
+      naam,
+      stand_nummer: standNummer || null,
+    }),
+  });
+  return nieuw;
+}
+
+export async function voegStandenBulkToe(env, evenementId, rijen) {
+  const body = rijen.map((r) => ({
+    evenement_id: evenementId,
+    naam: r.naam,
+    stand_nummer: r.standNummer || null,
+  }));
+  return supabaseFetch(env, "standen", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function verwijderStand(env, id) {
+  await supabaseFetch(env, `standen?id=eq.${id}`, { method: "DELETE" });
+}
+
+// ---- Admin: menu ----
+
+export async function haalMenuBeheer(env, evenementId) {
+  return supabaseFetch(env, `menu_items?evenement_id=eq.${evenementId}&select=id,naam&order=naam.asc`);
+}
+
+export async function voegMenuItemToe(env, evenementId, naam) {
+  const [nieuw] = await supabaseFetch(env, "menu_items", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({ evenement_id: evenementId, naam }),
+  });
+  return nieuw;
+}
+
+export async function verwijderMenuItem(env, id) {
+  await supabaseFetch(env, `menu_items?id=eq.${id}`, { method: "DELETE" });
 }

@@ -232,7 +232,9 @@
   const aantallen = {};
   let menu = [];
 
-  const vastBedrijf = (new URLSearchParams(window.location.search).get("bedrijf") || "").trim();
+  const zoekParams = new URLSearchParams(window.location.search);
+  const vastBedrijf = (zoekParams.get("bedrijf") || "").trim();
+  const vastEvenement = (zoekParams.get("evenement") || "").trim();
   if (vastBedrijf) {
     document.getElementById("bedrijf-veld").style.display = "none";
     const vastEl = document.getElementById("bedrijf-vast");
@@ -244,7 +246,8 @@
   }
 
   async function laadMenu() {
-    const res = await fetch("/api/menu");
+    const url = vastEvenement ? `/api/menu?evenement=${encodeURIComponent(vastEvenement)}` : "/api/menu";
+    const res = await fetch(url);
     menu = await res.json();
     const container = document.getElementById("drank-lijst");
     container.innerHTML = "";
@@ -307,7 +310,10 @@
     btn.textContent = "Bezig met versturen...";
 
     try {
-      const res = await fetch("/api/bestellingen", {
+      const bestelUrl = vastEvenement
+        ? `/api/bestellingen?evenement=${encodeURIComponent(vastEvenement)}`
+        : "/api/bestellingen";
+      const res = await fetch(bestelUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bedrijf, dranken }),

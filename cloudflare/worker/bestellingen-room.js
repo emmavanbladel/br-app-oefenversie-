@@ -3,10 +3,18 @@ import { getActiefEvenementId, haalBestellingen, maakBestelling, markeerGeleverd
 // Deze Durable Object bewaart zelf geen bestellingen meer (dat gebeurt in
 // Supabase) — ze is enkel nog de live verbinding: houdt de WebSockets van de
 // beheerschermen bij en zendt uit zodra er iets wijzigt in de database.
+// Eén instantie per beurs (zie getKamer() in index.js), zodat een
+// beheerscherm enkel de bestellingen van de gekozen beurs live binnenkrijgt.
 export class BestellingenRoom {
   constructor(ctx, env) {
     this.ctx = ctx;
     this.env = env;
+  }
+
+  async evenementId(url) {
+    const opgegeven = url.searchParams.get("evenement");
+    if (opgegeven) return parseInt(opgegeven, 10);
+    return getActiefEvenementId(this.env);
   }
 
   async fetch(request) {
@@ -23,7 +31,7 @@ export class BestellingenRoom {
 
     try {
       if (url.pathname === "/api/bestellingen" && request.method === "GET") {
-        const evenementId = await getActiefEvenementId(this.env);
+        const evenementId = await this.evenementId(url);
         return Response.json(await haalBestellingen(this.env, evenementId));
       }
 
@@ -43,7 +51,7 @@ export class BestellingenRoom {
           return Response.json({ error: "Kies minstens één drankje." }, { status: 400 });
         }
 
-        const evenementId = await getActiefEvenementId(this.env);
+        const evenementId = await this.evenementId(url);
         const nieuweBestelling = await maakBestelling(this.env, evenementId, bedrijf.trim(), dranken);
         this.uitzenden("nieuwe-bestelling", nieuweBestelling);
         return Response.json(nieuweBestelling, { status: 201 });
@@ -52,7 +60,7 @@ export class BestellingenRoom {
       const match = url.pathname.match(/^\/api\/bestellingen\/(\d+)\/geleverd$/);
       if (match && request.method === "POST") {
         const id = parseInt(match[1], 10);
-        const evenementId = await getActiefEvenementId(this.env);
+        const evenementId = await this.evenementId(url);
         const bestelling = await markeerGeleverd(this.env, evenementId, id);
         if (!bestelling) {
           return Response.json({ error: "Bestelling niet gevonden." }, { status: 404 });

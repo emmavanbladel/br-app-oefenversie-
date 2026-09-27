@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ekonomika — Admin</title>
+<link rel="icon" type="image/png" href="/assets/favicon.png" />
+<style>
+  :root {
+    --blauw: #0a4e9d;
+    --blauw-donker: #073a78;
+    --achtergrond: #f5f6f8;
+    --groen: #1c8a4b;
+    --grijs: #6b7280;
+    --rand: #e2e5eb;
+    --rood: #b3261e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--achtergrond);
+    color: #1a1a1a;
+  }
+  header {
+    background: #fff;
+    border-bottom: 1px solid var(--rand);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header img { height: 26px; display: block; }
+  header .paginanaam {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--grijs);
+  }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 80px; }
+
+  .kaart {
+    background: #fff;
+    border: 1px solid var(--rand);
+    border-radius: 12px;
+    padding: 22px 20px;
+    margin-bottom: 20px;
+  }
+  .kaart h2 { font-size: 1rem; margin: 0 0 16px; color: #111827; }
+  .kaart h3 { font-size: 0.88rem; margin: 20px 0 10px; color: #111827; }
+
+  label { display: block; font-weight: 600; font-size: 0.82rem; margin: 12px 0 6px; }
+  input[type="text"], input[type="password"], textarea, select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 0.92rem;
+    border: 1.5px solid var(--rand);
+    border-radius: 8px;
+    outline: none;
+    font-family: inherit;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--blauw); }
+  textarea { resize: vertical; min-height: 90px; }
+
+  button {
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: none;
+    background: var(--blauw);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.88rem;
+  }
+  button:hover { background: var(--blauw-donker); }
+  button.secundair {
+    background: #fff;
+    border: 1.5px solid var(--blauw);
+    color: var(--blauw);
+  }
+  button.secundair:hover { background: #eaf1fb; }
+  button.gevaar {
+    background: #fff;
+    border: 1.5px solid var(--rood);
+    color: var(--rood);
+    padding: 4px 10px;
+    font-size: 0.78rem;
+  }
+  button.gevaar:hover { background: #fdeeee; }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .rij-actie { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-top: 12px; }
+  .rij-actie > div { flex: 1; min-width: 160px; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--rand); font-size: 0.88rem; vertical-align: middle; }
+  th { color: var(--grijs); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; }
+  td.link-cel { font-size: 0.78rem; color: var(--grijs); word-break: break-all; }
+  td img.qr-mini { width: 46px; height: 46px; display: block; }
+
+  .melding { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; display: none; }
+  .melding.fout { display: block; background: #fdeeee; color: var(--rood); border: 1px solid #f3c2c0; }
+  .melding.succes { display: block; background: #eaf6ef; color: var(--groen); border: 1px solid #cdead9; }
+
+  .login-kaart { max-width: 360px; margin: 60px auto 0; }
+  .badge-actief {
+    font-size: 0.7rem; font-weight: 700; color: #fff; background: var(--groen);
+    border-radius: 999px; padding: 2px 8px; margin-left: 8px;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <img src="/assets/ekonomika-logo.png" alt="Ekonomika" />
+    <span class="paginanaam">Admin</span>
+  </header>
+
+  <main>
+    <div id="login-scherm" class="kaart login-kaart">
+      <h2>Inloggen</h2>
+      <label for="login-wachtwoord">Admin-wachtwoord</label>
+      <input type="password" id="login-wachtwoord" autocomplete="current-password" />
+      <div class="rij-actie">
+        <button id="login-btn">Inloggen</button>
+      </div>
+      <div id="login-melding" class="melding"></div>
+    </div>
+
+    <div id="admin-scherm" style="display:none;">
+      <div class="kaart">
+        <h2>Beurzen</h2>
+        <table>
+          <thead><tr><th>Naam</th><th>Aangemaakt</th><th></th></tr></thead>
+          <tbody id="evenementen-lijst"></tbody>
+        </table>
+        <div class="rij-actie">
+          <div>
+            <label for="nieuwe-beurs-naam">Nieuwe beurs</label>
+            <input type="text" id="nieuwe-beurs-naam" placeholder="bv. Ekonomika Jobbeurs voorjaar 2027" />
+          </div>
+          <button id="beurs-toevoegen-btn">Beurs aanmaken</button>
+        </div>
+        <div id="evenementen-melding" class="melding"></div>
+      </div>
+
+      <div class="kaart">
+        <h2>Partners &amp; standen</h2>
+        <label for="beheer-beurs-select">Voor welke beurs?</label>
+        <select id="beheer-beurs-select"></select>
+
+        <table>
+          <thead><tr><th>Bedrijf</th><th>Tafel/stand</th><th>QR-code</th><th>Link</th><th></th></tr></thead>
+          <tbody id="standen-lijst"></tbody>
+        </table>
+
+        <h3>Eén partner toevoegen</h3>
+        <div class="rij-actie">
+          <div>
+            <label for="stand-naam">Bedrijfsnaam</label>
+            <input type="text" id="stand-naam" placeholder="bv. Deloitte" />
+          </div>
+          <div>
+            <label for="stand-nummer">Tafel/stand (optioneel)</label>
+            <input type="text" id="stand-nummer" placeholder="bv. 5" />
+          </div>
+          <button id="stand-toevoegen-btn">Toevoegen</button>
+        </div>
+
+        <h3>In bulk importeren (CSV)</h3>
+        <label for="csv-invoer">Eén per lijn: <code>bedrijfsnaam,tafelnummer</code> (tafelnummer optioneel)</label>
+        <textarea id="csv-invoer" placeholder="Deloitte,5&#10;KPMG,6&#10;EY"></textarea>
+        <div class="rij-actie">
+          <button id="csv-import-btn">Importeren</button>
+        </div>
+
+        <div id="standen-melding" class="melding"></div>
+      </div>
+
+      <div class="kaart">
+        <h2>Menu (drankjes)</h2>
+        <p style="color:var(--grijs); font-size:0.85rem; margin-top:-8px;">
+          Voor dezelfde beurs als hierboven geselecteerd.
+        </p>
+        <table>
+          <thead><tr><th>Drankje</th><th></th></tr></thead>
+          <tbody id="menu-lijst"></tbody>
+        </table>
+        <div class="rij-actie">
+          <div>
+            <label for="menu-naam">Nieuw drankje</label>
+            <input type="text" id="menu-naam" placeholder="bv. Cola" />
+          </div>
+          <button id="menu-toevoegen-btn">Toevoegen</button>
+        </div>
+        <div id="menu-melding" class="melding"></div>
+      </div>
+    </div>
+  </main>
+
+<script>
+  let wachtwoord = "";
+  let huidigeBeurs = null;
+
+  function toonMelding(id, tekst, type) {
+    const el = document.getElementById(id);
+    el.textContent = tekst;
+    el.className = `melding ${type}`;
+  }
+  function verbergMelding(id) {
+    document.getElementById(id).className = "melding";
+  }
+
+  async function adminFetch(pad, opties = {}) {
+    const res = await fetch(pad, {
+      ...opties,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Password": wachtwoord,
+        ...(opties.headers || {}),
+      },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Er ging iets mis.");
+    return data;
+  }
+
+  // ---- Login ----
+  document.getElementById("login-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("login-btn");
+    wachtwoord = document.getElementById("login-wachtwoord").value;
+    btn.disabled = true;
+    btn.textContent = "Bezig...";
+    try {
+      const res = await fetch("/api/admin/login", { headers: { "X-Admin-Password": wachtwoord } });
+      if (!res.ok) throw new Error("Verkeerd wachtwoord.");
+      document.getElementById("login-scherm").style.display = "none";
+      document.getElementById("admin-scherm").style.display = "block";
+      await laadAlles();
+    } catch (err) {
+      toonMelding("login-melding", err.message, "fout");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Inloggen";
+    }
+  });
+
+  async function laadAlles() {
+    await laadEvenementen();
+    await laadStandenEnMenu();
+  }
+
+  // ---- Beurzen ----
+  async function laadEvenementen() {
+    const beurzen = await adminFetch("/api/admin/evenementen");
+
+    const lijst = document.getElementById("evenementen-lijst");
+    lijst.innerHTML = "";
+    beurzen.forEach((b) => {
+      const tr = document.createElement("tr");
+      const naamTd = document.createElement("td");
+      naamTd.textContent = b.naam;
+      if (b.actief) {
+        const badge = document.createElement("span");
+        badge.className = "badge-actief";
+        badge.textContent = "actief";
+        naamTd.appendChild(badge);
+      }
+      const datumTd = document.createElement("td");
+      datumTd.textContent = new Date(b.aangemaakt_op).toLocaleDateString("nl-BE");
+      const actieTd = document.createElement("td");
+      if (!b.actief) {
+        const actiefBtn = document.createElement("button");
+        actiefBtn.className = "secundair";
+        actiefBtn.textContent = "Maak actief";
+        actiefBtn.addEventListener("click", async () => {
+          await adminFetch(`/api/admin/evenementen/${b.id}/actief`, { method: "POST" });
+          await laadAlles();
+        });
+        actieTd.appendChild(actiefBtn);
+      }
+      tr.append(naamTd, datumTd, actieTd);
+      lijst.appendChild(tr);
+    });
+
+    // Kies-lijst voor het beheren van partners/menu bijwerken, met behoud
+    // van de huidige keuze indien mogelijk.
+    const select = document.getElementById("beheer-beurs-select");
+    const vorigeKeuze = huidigeBeurs;
+    select.innerHTML = "";
+    beurzen.forEach((b) => {
+      const optie = document.createElement("option");
+      optie.value = b.id;
+      optie.textContent = b.actief ? `${b.naam} (actief)` : b.naam;
+      select.appendChild(optie);
+    });
+    const bestaatNogSteeds = beurzen.some((b) => String(b.id) === String(vorigeKeuze));
+    const actieveBeurs = beurzen.find((b) => b.actief) || beurzen[0];
+    huidigeBeurs = bestaatNogSteeds ? vorigeKeuze : actieveBeurs?.id ?? null;
+    if (huidigeBeurs) select.value = huidigeBeurs;
+  }
+
+  document.getElementById("beurs-toevoegen-btn").addEventListener("click", async () => {
+    const input = document.getElementById("nieuwe-beurs-naam");
+    verbergMelding("evenementen-melding");
+    if (!input.value.trim()) {
+      toonMelding("evenementen-melding", "Vul een naam in.", "fout");
+      return;
+    }
+    try {
+      await adminFetch("/api/admin/evenementen", {
+        method: "POST",
+        body: JSON.stringify({ naam: input.value.trim() }),
+      });
+      input.value = "";
+      await laadAlles();
+    } catch (err) {
+      toonMelding("evenementen-melding", err.message, "fout");
+    }
+  });
+
+  document.getElementById("beheer-beurs-select").addEventListener("change", async (e) => {
+    huidigeBeurs = e.target.value;
+    await laadStandenEnMenu();
+  });
+
+  // ---- Partners / standen ----
+  async function laadStandenEnMenu() {
+    if (!huidigeBeurs) return;
+    await Promise.all([laadStanden(), laadMenu()]);
+  }
+
+  async function laadStanden() {
+    const standen = await adminFetch(`/api/admin/evenementen/${huidigeBeurs}/standen`);
+    const lijst = document.getElementById("standen-lijst");
+    lijst.innerHTML = "";
+
+    standen.forEach((s) => {
+      const tr = document.createElement("tr");
+
+      const naamTd = document.createElement("td");
+      naamTd.textContent = s.naam;
+
+      const nummerTd = document.createElement("td");
+      nummerTd.textContent = s.stand_nummer || "—";
+
+      const qrTd = document.createElement("td");
+      const qrImg = document.createElement("img");
+      qrImg.className = "qr-mini";
+      qrImg.src = `/qr.png?evenement=${huidigeBeurs}&bedrijf=${encodeURIComponent(s.naam)}`;
+      qrImg.alt = `QR-code voor ${s.naam}`;
+      qrTd.appendChild(qrImg);
+
+      const linkTd = document.createElement("td");
+      linkTd.className = "link-cel";
+      linkTd.textContent = `${location.origin}/?evenement=${huidigeBeurs}&bedrijf=${encodeURIComponent(s.naam)}`;
+
+      const actieTd = document.createElement("td");
+      const verwijderBtn = document.createElement("button");
+      verwijderBtn.className = "gevaar";
+      verwijderBtn.textContent = "Verwijderen";
+      verwijderBtn.addEventListener("click", async () => {
+        if (!confirm(`"${s.naam}" verwijderen?`)) return;
+        await adminFetch(`/api/admin/standen/${s.id}`, { method: "DELETE" });
+        await laadStanden();
+      });
+      actieTd.appendChild(verwijderBtn);
+
+      tr.append(naamTd, nummerTd, qrTd, linkTd, actieTd);
+      lijst.appendChild(tr);
+    });
+  }
+
+  document.getElementById("stand-toevoegen-btn").addEventListener("click", async () => {
+    verbergMelding("standen-melding");
+    const naamInput = document.getElementById("stand-naam");
+    const nummerInput = document.getElementById("stand-nummer");
+    if (!naamInput.value.trim()) {
+      toonMelding("standen-melding", "Bedrijfsnaam is verplicht.", "fout");
+      return;
+    }
+    try {
+      await adminFetch(`/api/admin/evenementen/${huidigeBeurs}/standen`, {
+        method: "POST",
+        body: JSON.stringify({ naam: naamInput.value.trim(), standNummer: nummerInput.value.trim() }),
+      });
+      naamInput.value = "";
+      nummerInput.value = "";
+      await laadStanden();
+    } catch (err) {
+      toonMelding("standen-melding", err.message, "fout");
+    }
+  });
+
+  document.getElementById("csv-import-btn").addEventListener("click", async () => {
+    verbergMelding("standen-melding");
+    const invoer = document.getElementById("csv-invoer");
+    if (!invoer.value.trim()) {
+      toonMelding("standen-melding", "Plak eerst wat rijen in het veld.", "fout");
+      return;
+    }
+    try {
+      const resultaat = await adminFetch(`/api/admin/evenementen/${huidigeBeurs}/standen/import`, {
+        method: "POST",
+        body: JSON.stringify({ csv: invoer.value }),
+      });
+      invoer.value = "";
+      toonMelding("standen-melding", `${resultaat.aantal} partner(s) toegevoegd.`, "succes");
+      await laadStanden();
+    } catch (err) {
+      toonMelding("standen-melding", err.message, "fout");
+    }
+  });
+
+  // ---- Menu ----
+  async function laadMenu() {
+    const items = await adminFetch(`/api/admin/evenementen/${huidigeBeurs}/menu`);
+    const lijst = document.getElementById("menu-lijst");
+    lijst.innerHTML = "";
+    items.forEach((item) => {
+      const tr = document.createElement("tr");
+      const naamTd = document.createElement("td");
+      naamTd.textContent = item.naam;
+      const actieTd = document.createElement("td");
+      const verwijderBtn = document.createElement("button");
+      verwijderBtn.className = "gevaar";
+      verwijderBtn.textContent = "Verwijderen";
+      verwijderBtn.addEventListener("click", async () => {
+        if (!confirm(`"${item.naam}" verwijderen?`)) return;
+        await adminFetch(`/api/admin/menu/${item.id}`, { method: "DELETE" });
+        await laadMenu();
+      });
+      actieTd.appendChild(verwijderBtn);
+      tr.append(naamTd, actieTd);
+      lijst.appendChild(tr);
+    });
+  }
+
+  document.getElementById("menu-toevoegen-btn").addEventListener("click", async () => {
+    verbergMelding("menu-melding");
+    const input = document.getElementById("menu-naam");
+    if (!input.value.trim()) {
+      toonMelding("menu-melding", "Naam van het drankje is verplicht.", "fout");
+      return;
+    }
+    try {
+      await adminFetch(`/api/admin/evenementen/${huidigeBeurs}/menu`, {
+        method: "POST",
+        body: JSON.stringify({ naam: input.value.trim() }),
+      });
+      input.value = "";
+      await laadMenu();
+    } catch (err) {
+      toonMelding("menu-melding", err.message, "fout");
+    }
+  });
+</script>
+</body>
+</html>

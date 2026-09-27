@@ -38,6 +38,15 @@
     text-transform: uppercase;
     color: var(--grijs);
   }
+  header select {
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 6px 10px;
+    border-radius: 7px;
+    border: 1.5px solid var(--rand);
+    background: #fff;
+    color: #1a1a1a;
+  }
   main { padding: 20px 16px 80px; }
 
   .status-balk {
@@ -182,7 +191,7 @@
 <body>
   <header>
     <img src="/assets/ekonomika-logo.png" alt="Ekonomika" />
-    <span class="paginanaam">Beheer bestellingen</span>
+    <select id="beurs-select" title="Kies een beurs"></select>
   </header>
 
   <main>
@@ -227,6 +236,7 @@
   const tellingAfgewerkt = document.getElementById("telling-afgewerkt");
   let geluidAan = false;
   let audioCtx = null;
+  let huidigEvenement = null;
 
   // ---- Verbindingsstatus ----
   function zetStatus(verbonden) {
@@ -237,14 +247,19 @@
   }
   // ---- Live verbinding (WebSocket via de Durable Object) ----
   let ws;
+  let herverbindTimer;
   function verbind() {
+    if (ws) ws.close();
+    clearTimeout(herverbindTimer);
+
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-    ws = new WebSocket(`${protocol}//${location.host}/ws`);
+    const query = huidigEvenement ? `?evenement=${encodeURIComponent(huidigEvenement)}` : "";
+    ws = new WebSocket(`${protocol}//${location.host}/ws${query}`);
 
     ws.addEventListener("open", () => zetStatus(true));
     ws.addEventListener("close", () => {
       zetStatus(false);
-      setTimeout(verbind, 2000);
+      herverbindTimer = setTimeout(verbind, 2000);
     });
     ws.addEventListener("error", () => ws.close());
     ws.addEventListener("message", (event) => {
@@ -372,9 +387,10 @@
   function afleverenKlik(e) {
     if (!e.target.classList.contains("afleveren-btn")) return;
     const id = e.target.dataset.id;
+    const query = huidigEvenement ? `?evenement=${encodeURIComponent(huidigEvenement)}` : "";
     e.target.disabled = true;
     e.target.textContent = "Bezig...";
-    fetch(`/api/bestellingen/${id}/geleverd`, { method: "POST" }).catch(() => {
+    fetch(`/api/bestellingen/${id}/geleverd${query}`, { method: "POST" }).catch(() => {
       e.target.disabled = false;
       e.target.textContent = "Markeer als geleverd";
     });
@@ -384,7 +400,11 @@
 
   // ---- Bestaande bestellingen laden bij openen pagina ----
   async function laadBestellingen() {
-    const res = await fetch("/api/bestellingen");
+    lijstInkomend.querySelectorAll(".bestelling").forEach((el) => el.remove());
+    lijstAfgewerkt.querySelectorAll(".bestelling").forEach((el) => el.remove());
+
+    const query = huidigEvenement ? `?evenement=${encodeURIComponent(huidigEvenement)}` : "";
+    const res = await fetch(`/api/bestellingen${query}`);
     const bestellingen = await res.json();
     // API geeft nieuwste eerst; we tonen ze in dezelfde volgorde per kolom
     bestellingen.forEach((b) => {
@@ -394,8 +414,38 @@
     bijwerkenTellingen();
   }
 
-  laadBestellingen();
-  verbind();
+  // ---- Beurzen-kiezer ----
+  async function laadBeurzen() {
+    const select = document.getElementById("beurs-select");
+    const res = await fetch("/api/evenementen");
+    const beurzen = await res.json();
+
+    select.innerHTML = "";
+    beurzen.forEach((b) => {
+      const optie = document.createElement("option");
+      optie.value = b.id;
+      optie.textContent = b.actief ? `${b.naam} (actief)` : b.naam;
+      select.appendChild(optie);
+    });
+
+    const actieveBeurs = beurzen.find((b) => b.actief) || beurzen[0];
+    if (actieveBeurs) {
+      select.value = actieveBeurs.id;
+      huidigEvenement = actieveBeurs.id;
+    }
+
+    select.addEventListener("change", () => {
+      huidigEvenement = select.value;
+      laadBestellingen();
+      verbind();
+    });
+  }
+
+  (async () => {
+    await laadBeurzen();
+    await laadBestellingen();
+    verbind();
+  })();
 </script>
 </body>
 </html>

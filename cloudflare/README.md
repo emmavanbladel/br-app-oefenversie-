@@ -42,6 +42,30 @@ Voor lokaal testen met `wrangler dev`: maak een bestand `.dev.vars` in deze map
 SUPABASE_SERVICE_ROLE_KEY=plak-hier-je-service-role-sleutel
 ```
 
+## Admin-scherm (`/admin.html`)
+
+Op `/admin.html` kan je:
+- **beurzen aanmaken** en kiezen welke er "actief" is (bepaalt wat de
+  algemene QR-code/link toont);
+- **partners per beurs toevoegen** — één voor één, of in bulk via een
+  CSV-invoerveld (formaat: `bedrijfsnaam,tafelnummer` per lijn, tafelnummer
+  optioneel);
+- meteen de **QR-code en link per partner** bekijken — die verwijst
+  rechtstreeks naar de bestelpagina met bedrijf én beurs al ingevuld;
+- het **menu (drankjes) per beurs** beheren.
+
+Dit scherm is beveiligd met een gedeeld wachtwoord (geen individuele
+accounts — voldoende voor intern gebruik door Ekonomika-vrijwilligers). Dat
+wachtwoord stel je zelf in als een **geheime** omgevingsvariabele:
+
+1. Ga in Cloudflare naar je Worker → **Settings → Variables and Secrets**.
+2. Klik **Add** → type **Secret** → naam `ADMIN_PASSWORD` → kies zelf een
+   wachtwoord → **Save**.
+3. Deel dat wachtwoord enkel met wie het admin-scherm mag gebruiken.
+
+Zonder deze variabele blijft `/admin.html` volledig op slot (elke poging om
+in te loggen wordt geweigerd).
+
 ## Eenmalig instellen
 
 Je hebt een gratis [Cloudflare-account](https://dash.cloudflare.com/sign-up)
