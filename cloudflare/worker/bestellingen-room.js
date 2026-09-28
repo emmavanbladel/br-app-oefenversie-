@@ -1,4 +1,4 @@
-import { getActiefEvenementId, haalBestellingen, maakBestelling, markeerGeleverd } from "./supabase.js";
+import { getActiefEvenementId, haalBestellingen, maakBestelling, zetBestellingStatus } from "./supabase.js";
 
 // Deze Durable Object bewaart zelf geen bestellingen meer (dat gebeurt in
 // Supabase) — ze is enkel nog de live verbinding: houdt de WebSockets van de
@@ -57,11 +57,12 @@ export class BestellingenRoom {
         return Response.json(nieuweBestelling, { status: 201 });
       }
 
-      const match = url.pathname.match(/^\/api\/bestellingen\/(\d+)\/geleverd$/);
+      const match = url.pathname.match(/^\/api\/bestellingen\/(\d+)\/(nieuw|bezig|klaar|geleverd)$/);
       if (match && request.method === "POST") {
         const id = parseInt(match[1], 10);
+        const status = match[2];
         const evenementId = await this.evenementId(url);
-        const bestelling = await markeerGeleverd(this.env, evenementId, id);
+        const bestelling = await zetBestellingStatus(this.env, evenementId, id, status);
         if (!bestelling) {
           return Response.json({ error: "Bestelling niet gevonden." }, { status: 404 });
         }
