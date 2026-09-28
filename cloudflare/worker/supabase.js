@@ -110,14 +110,20 @@ export async function maakBestelling(env, evenementId, bedrijf, dranken) {
   return mapBestelling({ ...nieuw, bestelling_items: dranken });
 }
 
-export async function markeerGeleverd(env, evenementId, id) {
+// De vier stappen waar een bestelling doorheen gaat, in volgorde.
+export const BESTELLING_STATUSSEN = ["nieuw", "bezig", "klaar", "geleverd"];
+
+export async function zetBestellingStatus(env, evenementId, id, status) {
+  if (!BESTELLING_STATUSSEN.includes(status)) {
+    throw new Error(`Ongeldige status: ${status}`);
+  }
   const rijen = await supabaseFetch(
     env,
     `bestellingen?id=eq.${id}&evenement_id=eq.${evenementId}&select=id,bedrijf_naam,status,tijdstip`,
     {
       method: "PATCH",
       headers: { Prefer: "return=representation" },
-      body: JSON.stringify({ status: "geleverd" }),
+      body: JSON.stringify({ status }),
     }
   );
   if (!rijen?.[0]) return null;

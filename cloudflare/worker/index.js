@@ -194,7 +194,7 @@ export default {
     const isBestellingenRoute =
       url.pathname === "/ws" ||
       url.pathname === "/api/bestellingen" ||
-      /^\/api\/bestellingen\/\d+\/geleverd$/.test(url.pathname);
+      /^\/api\/bestellingen\/\d+\/(nieuw|bezig|klaar|geleverd)$/.test(url.pathname);
 
     if (isBestellingenRoute) {
       return getKamer(env, url).fetch(request);

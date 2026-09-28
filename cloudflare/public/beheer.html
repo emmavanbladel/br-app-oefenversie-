@@ -14,6 +14,7 @@
     --grijs: #6b7280;
     --rand: #e2e5eb;
     --oranje: #c97a12;
+    --paars: #6d28d9;
   }
   * { box-sizing: border-box; }
   body {
@@ -50,7 +51,7 @@
   main { padding: 20px 16px 80px; }
 
   .status-balk {
-    max-width: 1180px;
+    max-width: 1480px;
     margin: 0 auto 16px;
     padding: 10px 14px;
     border-radius: 8px;
@@ -65,7 +66,7 @@
   .stip { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; }
 
   #geluid-toestaan {
-    max-width: 1180px;
+    max-width: 1480px;
     margin: 0 auto 16px;
     padding: 12px 14px;
     background: #fdf6ea;
@@ -92,14 +93,17 @@
   }
 
   .kolommen {
-    max-width: 1180px;
+    max-width: 1480px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(4, 1fr);
     gap: 20px;
     align-items: start;
   }
-  @media (max-width: 780px) {
+  @media (max-width: 1100px) {
+    .kolommen { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 560px) {
     .kolommen { grid-template-columns: 1fr; }
   }
 
@@ -130,6 +134,8 @@
     justify-content: center;
   }
   .kolom-inkomend .kolom-kop .telling { background: var(--oranje); }
+  .kolom-bezig .kolom-kop .telling { background: var(--blauw); }
+  .kolom-klaar .kolom-kop .telling { background: var(--paars); }
   .kolom-afgewerkt .kolom-kop .telling { background: var(--groen); }
 
   .lijst { display: flex; flex-direction: column; gap: 10px; }
@@ -142,6 +148,8 @@
     border-left: 4px solid var(--oranje);
     animation: verschijnen 0.35s ease;
   }
+  .bestelling.bezig { border-left-color: var(--blauw); }
+  .bestelling.klaar { border-left-color: var(--paars); }
   .bestelling.geleverd { border-left-color: var(--groen); opacity: 0.75; }
   @keyframes verschijnen {
     from { transform: translateY(-8px); opacity: 0; }
@@ -159,18 +167,18 @@
   .dranken { font-size: 0.92rem; margin: 0 0 12px; color: #333; }
   .dranken span.aantal { font-weight: 700; color: var(--blauw); }
   .acties { display: flex; justify-content: flex-end; }
-  .afleveren-btn {
+  .actie-btn {
     padding: 8px 15px;
     border-radius: 7px;
-    border: 1.5px solid var(--groen);
+    border: 1.5px solid var(--kleur, var(--groen));
     background: #fff;
-    color: var(--groen);
+    color: var(--kleur, var(--groen));
     font-weight: 600;
     cursor: pointer;
     font-size: 0.87rem;
     font-family: inherit;
   }
-  .afleveren-btn:hover { background: #eaf6ef; }
+  .actie-btn:hover { background: color-mix(in srgb, var(--kleur, var(--groen)) 10%, #fff); }
   .label-geleverd {
     font-size: 0.85rem;
     color: var(--groen);
@@ -215,6 +223,26 @@
         </div>
       </section>
 
+      <section class="kolom-bezig">
+        <div class="kolom-kop">
+          <h2>Bezig</h2>
+          <span class="telling" id="telling-bezig">0</span>
+        </div>
+        <div class="lijst" id="lijst-bezig">
+          <div class="leeg" id="leeg-bezig">Nog niets in bereiding.</div>
+        </div>
+      </section>
+
+      <section class="kolom-klaar">
+        <div class="kolom-kop">
+          <h2>Klaar om weg te brengen</h2>
+          <span class="telling" id="telling-klaar">0</span>
+        </div>
+        <div class="lijst" id="lijst-klaar">
+          <div class="leeg" id="leeg-klaar">Nog niets klaar om weg te brengen.</div>
+        </div>
+      </section>
+
       <section class="kolom-afgewerkt">
         <div class="kolom-kop">
           <h2>Afgewerkte bestellingen</h2>
@@ -228,12 +256,27 @@
   </main>
 
 <script>
-  const lijstInkomend = document.getElementById("lijst-inkomend");
-  const lijstAfgewerkt = document.getElementById("lijst-afgewerkt");
-  const leegInkomend = document.getElementById("leeg-inkomend");
-  const leegAfgewerkt = document.getElementById("leeg-afgewerkt");
-  const tellingInkomend = document.getElementById("telling-inkomend");
-  const tellingAfgewerkt = document.getElementById("telling-afgewerkt");
+  // De vier stappen waar een bestelling doorheen gaat, in volgorde. "suffix"
+  // is het stukje na "lijst-"/"leeg-"/"telling-" in de HTML-id's hierboven;
+  // die heten om historische redenen "inkomend"/"afgewerkt" i.p.v. "nieuw"/
+  // "geleverd", dus die vertaalslag staat hier op één plek.
+  const STATUSSEN = [
+    { status: "nieuw", suffix: "inkomend", volgende: "bezig", volgendeLabel: "Start bereiden", kleur: "var(--oranje)" },
+    { status: "bezig", suffix: "bezig", volgende: "klaar", volgendeLabel: "Klaar om weg te brengen", kleur: "var(--blauw)" },
+    { status: "klaar", suffix: "klaar", volgende: "geleverd", volgendeLabel: "Markeer als geleverd", kleur: "var(--paars)" },
+    { status: "geleverd", suffix: "afgewerkt", volgende: null, volgendeLabel: null, kleur: "var(--groen)" },
+  ];
+  const statusInfo = Object.fromEntries(STATUSSEN.map((s) => [s.status, s]));
+
+  const lijsten = {};
+  const legen = {};
+  const tellingen = {};
+  STATUSSEN.forEach(({ suffix }) => {
+    lijsten[suffix] = document.getElementById(`lijst-${suffix}`);
+    legen[suffix] = document.getElementById(`leeg-${suffix}`);
+    tellingen[suffix] = document.getElementById(`telling-${suffix}`);
+  });
+
   let geluidAan = false;
   let audioCtx = null;
   let huidigEvenement = null;
@@ -321,7 +364,7 @@
 
   function renderBestelling(bestelling) {
     const div = document.createElement("div");
-    div.className = "bestelling" + (bestelling.status === "geleverd" ? " geleverd" : "");
+    div.className = "bestelling" + (bestelling.status !== "nieuw" ? ` ${bestelling.status}` : "");
     div.id = `bestelling-${bestelling.id}`;
 
     const top = document.createElement("div");
@@ -346,17 +389,20 @@
 
     const actiesEl = document.createElement("div");
     actiesEl.className = "acties";
-    if (bestelling.status === "geleverd") {
+    const info = statusInfo[bestelling.status];
+    if (info.volgende) {
+      const btn = document.createElement("button");
+      btn.className = "actie-btn";
+      btn.style.setProperty("--kleur", statusInfo[info.volgende].kleur);
+      btn.dataset.id = bestelling.id;
+      btn.dataset.doel = info.volgende;
+      btn.textContent = info.volgendeLabel;
+      actiesEl.appendChild(btn);
+    } else {
       const label = document.createElement("span");
       label.className = "label-geleverd";
       label.textContent = "Geleverd";
       actiesEl.appendChild(label);
-    } else {
-      const btn = document.createElement("button");
-      btn.className = "afleveren-btn";
-      btn.dataset.id = bestelling.id;
-      btn.textContent = "Markeer als geleverd";
-      actiesEl.appendChild(btn);
     }
 
     div.append(top, drankenEl, actiesEl);
@@ -364,10 +410,11 @@
   }
 
   function bijwerkenTellingen() {
-    tellingInkomend.textContent = lijstInkomend.querySelectorAll(".bestelling").length;
-    tellingAfgewerkt.textContent = lijstAfgewerkt.querySelectorAll(".bestelling").length;
-    leegInkomend.style.display = lijstInkomend.querySelectorAll(".bestelling").length ? "none" : "";
-    leegAfgewerkt.style.display = lijstAfgewerkt.querySelectorAll(".bestelling").length ? "none" : "";
+    STATUSSEN.forEach(({ suffix }) => {
+      const aantal = lijsten[suffix].querySelectorAll(".bestelling").length;
+      tellingen[suffix].textContent = aantal;
+      legen[suffix].style.display = aantal ? "none" : "";
+    });
   }
 
   function voegBestellingToe(bestelling, bovenaan) {
@@ -375,7 +422,7 @@
     if (bestaand) bestaand.remove();
 
     const nieuweEl = renderBestelling(bestelling);
-    const doelLijst = bestelling.status === "geleverd" ? lijstAfgewerkt : lijstInkomend;
+    const doelLijst = lijsten[statusInfo[bestelling.status].suffix];
     if (bovenaan) {
       doelLijst.prepend(nieuweEl);
     } else {
@@ -384,32 +431,33 @@
     bijwerkenTellingen();
   }
 
-  function afleverenKlik(e) {
-    if (!e.target.classList.contains("afleveren-btn")) return;
+  function actieKlik(e) {
+    if (!e.target.classList.contains("actie-btn")) return;
     const id = e.target.dataset.id;
+    const doel = e.target.dataset.doel;
+    const oorspronkelijkeTekst = e.target.textContent;
     const query = huidigEvenement ? `?evenement=${encodeURIComponent(huidigEvenement)}` : "";
     e.target.disabled = true;
-    e.target.textContent = "Bezig...";
-    fetch(`/api/bestellingen/${id}/geleverd${query}`, { method: "POST" }).catch(() => {
+    e.target.textContent = "Even geduld...";
+    fetch(`/api/bestellingen/${id}/${doel}${query}`, { method: "POST" }).catch(() => {
       e.target.disabled = false;
-      e.target.textContent = "Markeer als geleverd";
+      e.target.textContent = oorspronkelijkeTekst;
     });
   }
-  lijstInkomend.addEventListener("click", afleverenKlik);
-  lijstAfgewerkt.addEventListener("click", afleverenKlik);
+  Object.values(lijsten).forEach((lijst) => lijst.addEventListener("click", actieKlik));
 
   // ---- Bestaande bestellingen laden bij openen pagina ----
   async function laadBestellingen() {
-    lijstInkomend.querySelectorAll(".bestelling").forEach((el) => el.remove());
-    lijstAfgewerkt.querySelectorAll(".bestelling").forEach((el) => el.remove());
+    Object.values(lijsten).forEach((lijst) => {
+      lijst.querySelectorAll(".bestelling").forEach((el) => el.remove());
+    });
 
     const query = huidigEvenement ? `?evenement=${encodeURIComponent(huidigEvenement)}` : "";
     const res = await fetch(`/api/bestellingen${query}`);
     const bestellingen = await res.json();
     // API geeft nieuwste eerst; we tonen ze in dezelfde volgorde per kolom
     bestellingen.forEach((b) => {
-      const doelLijst = b.status === "geleverd" ? lijstAfgewerkt : lijstInkomend;
-      doelLijst.appendChild(renderBestelling(b));
+      lijsten[statusInfo[b.status].suffix].appendChild(renderBestelling(b));
     });
     bijwerkenTellingen();
   }
