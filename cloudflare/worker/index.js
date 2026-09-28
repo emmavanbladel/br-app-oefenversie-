@@ -184,10 +184,13 @@ export default {
       const query = params.toString();
       const bestelUrl = query ? `${basisUrl}?${query}` : basisUrl;
       try {
-        const buffer = await QRCode.toBuffer(bestelUrl, { width: 500, margin: 2 });
-        return new Response(buffer, { headers: { "Content-Type": "image/png" } });
+        // toBuffer() (PNG) leunt op Node-specifieke API's die niet volledig
+        // beschikbaar zijn in de Workers-omgeving. toString met type "svg"
+        // is pure tekst/XML-opbouw en werkt daardoor overal betrouwbaar.
+        const svg = await QRCode.toString(bestelUrl, { type: "svg", width: 500, margin: 2 });
+        return new Response(svg, { headers: { "Content-Type": "image/svg+xml" } });
       } catch (err) {
-        return new Response("Kon QR-code niet genereren.", { status: 500 });
+        return new Response(`Kon QR-code niet genereren: ${err.message}`, { status: 500 });
       }
     }
 
