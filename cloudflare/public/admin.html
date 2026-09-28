@@ -350,13 +350,13 @@
       const qrTd = document.createElement("td");
       const qrImg = document.createElement("img");
       qrImg.className = "qr-mini";
-      qrImg.src = `/qr.png?evenement=${huidigeBeurs}&bedrijf=${encodeURIComponent(s.naam)}`;
+      qrImg.src = `/qr.png?evenement=${huidigeBeurs}&token=${encodeURIComponent(s.token)}`;
       qrImg.alt = `QR-code voor ${s.naam}`;
       qrTd.appendChild(qrImg);
 
       const linkTd = document.createElement("td");
       linkTd.className = "link-cel";
-      linkTd.textContent = `${location.origin}/?evenement=${huidigeBeurs}&bedrijf=${encodeURIComponent(s.naam)}`;
+      linkTd.textContent = `${location.origin}/?evenement=${huidigeBeurs}&token=${encodeURIComponent(s.token)}`;
 
       const actieTd = document.createElement("td");
       const verwijderBtn = document.createElement("button");

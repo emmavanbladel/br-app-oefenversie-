@@ -151,8 +151,18 @@ export async function maakEvenement(env, naam) {
 export async function haalStandenBeheer(env, evenementId) {
   return supabaseFetch(
     env,
-    `standen?evenement_id=eq.${evenementId}&select=id,naam,stand_nummer&order=naam.asc`
+    `standen?evenement_id=eq.${evenementId}&select=id,naam,stand_nummer,token&order=naam.asc`
   );
+}
+
+// Zoekt het bedrijf op achter een willekeurige token uit een partnerlink,
+// zodat de link zelf de bedrijfsnaam niet verklapt/raadbaar maakt.
+export async function haalStandDoorToken(env, evenementId, token) {
+  const rijen = await supabaseFetch(
+    env,
+    `standen?evenement_id=eq.${evenementId}&token=eq.${encodeURIComponent(token)}&select=naam,stand_nummer&limit=1`
+  );
+  return rijen?.[0] || null;
 }
 
 export async function voegStandToe(env, evenementId, naam, standNummer) {

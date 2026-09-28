@@ -8,6 +8,7 @@ import {
   maakEvenement,
   zetActiefEvenement,
   haalStandenBeheer,
+  haalStandDoorToken,
   voegStandToe,
   voegStandenBulkToe,
   verwijderStand,
@@ -174,12 +175,36 @@ export default {
       }
     }
 
+    // Zoekt welk bedrijf achter een partner-link (?token=...) zit, zonder
+    // dat de link zelf de naam verklapt.
+    if (url.pathname === "/api/stand-info") {
+      try {
+        const evenementId = url.searchParams.get("evenement") || (await getActiefEvenementId(env));
+        const token = url.searchParams.get("token") || "";
+        if (!token) {
+          return Response.json({ error: "Geen token meegegeven." }, { status: 400 });
+        }
+        const stand = await haalStandDoorToken(env, evenementId, token);
+        if (!stand) {
+          return Response.json({ error: "Onbekende of verlopen link." }, { status: 404 });
+        }
+        return Response.json(stand);
+      } catch (err) {
+        return foutRespons(err);
+      }
+    }
+
     if (url.pathname === "/qr.png") {
       const bedrijf = (url.searchParams.get("bedrijf") || "").trim();
+      const token = (url.searchParams.get("token") || "").trim();
       const evenement = url.searchParams.get("evenement");
       const basisUrl = `${url.origin}/`;
       const params = new URLSearchParams();
-      if (bedrijf) params.set("bedrijf", bedrijf);
+      if (token) {
+        params.set("token", token);
+      } else if (bedrijf) {
+        params.set("bedrijf", bedrijf);
+      }
       if (evenement) params.set("evenement", evenement);
       const query = params.toString();
       const bestelUrl = query ? `${basisUrl}?${query}` : basisUrl;

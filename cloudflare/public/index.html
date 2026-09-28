@@ -233,16 +233,37 @@
   let menu = [];
 
   const zoekParams = new URLSearchParams(window.location.search);
-  const vastBedrijf = (zoekParams.get("bedrijf") || "").trim();
+  let vastBedrijf = (zoekParams.get("bedrijf") || "").trim();
+  const vastToken = (zoekParams.get("token") || "").trim();
   const vastEvenement = (zoekParams.get("evenement") || "").trim();
-  if (vastBedrijf) {
-    document.getElementById("bedrijf-veld").style.display = "none";
-    const vastEl = document.getElementById("bedrijf-vast");
-    vastEl.textContent = "Je bestelt voor ";
-    const naamEl = document.createElement("strong");
-    naamEl.textContent = vastBedrijf;
-    vastEl.appendChild(naamEl);
-    vastEl.style.display = "block";
+
+  // Een partnerlink kan de bedrijfsnaam rechtstreeks meegeven (?bedrijf=...,
+  // oudere links) of via een niet-raadbare ?token=..., die we hier eerst
+  // moeten opzoeken.
+  async function bepaalVastBedrijf() {
+    if (!vastBedrijf && vastToken) {
+      try {
+        const params = new URLSearchParams({ token: vastToken });
+        if (vastEvenement) params.set("evenement", vastEvenement);
+        const res = await fetch(`/api/stand-info?${params}`);
+        if (res.ok) {
+          const stand = await res.json();
+          vastBedrijf = stand.naam;
+        }
+      } catch {
+        // negeren; het veld blijft dan gewoon vrij invulbaar
+      }
+    }
+
+    if (vastBedrijf) {
+      document.getElementById("bedrijf-veld").style.display = "none";
+      const vastEl = document.getElementById("bedrijf-vast");
+      vastEl.textContent = "Je bestelt voor ";
+      const naamEl = document.createElement("strong");
+      naamEl.textContent = vastBedrijf;
+      vastEl.appendChild(naamEl);
+      vastEl.style.display = "block";
+    }
   }
 
   async function laadMenu() {
@@ -343,7 +364,10 @@
     document.getElementById("bestel-scherm").style.display = "block";
   });
 
-  laadMenu();
+  (async () => {
+    await bepaalVastBedrijf();
+    await laadMenu();
+  })();
 </script>
 </body>
 </html>
