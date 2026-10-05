@@ -221,6 +221,11 @@
         </div>
 
         <h3>In bulk importeren (CSV)</h3>
+        <p class="uitleg">
+          Open het sjabloon in Excel, vul de bedrijfsnamen in (kolom Bedrijf) en eventueel het
+          tafelnummer (kolom Tafel), en sla het op als "CSV UTF-8". Kies het bestand daarna hieronder.
+          <a href="#" id="sjabloon-link">Sjabloon downloaden</a>
+        </p>
         <label for="csv-bestand">CSV-bestand kiezen (of hieronder rechtstreeks plakken)</label>
         <input type="file" id="csv-bestand" accept=".csv,text/csv" />
         <label for="csv-invoer" style="margin-top:14px;">Eén per lijn: <code>bedrijfsnaam,tafelnummer</code> (tafelnummer optioneel; komma of puntkomma als scheiding, een kopregel mag)</label>
@@ -512,6 +517,17 @@
     } catch (err) {
       toonMelding("standen-melding", err.message, "fout");
     }
+  });
+
+  // Puntkomma + BOM, zodat het sjabloon in Excel (NL/BE) meteen in twee kolommen opent.
+  document.getElementById("sjabloon-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    const bestand = new Blob(["﻿Bedrijf;Tafel\r\n"], { type: "text/csv;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(bestand);
+    link.download = "sjabloon-partners.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
   });
 
   document.getElementById("csv-bestand").addEventListener("change", async (e) => {
