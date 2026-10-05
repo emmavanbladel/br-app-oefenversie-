@@ -39,18 +39,42 @@ function foutRespons(err, status = 500) {
   return Response.json({ error: err.message || String(err) }, { status });
 }
 
-// Verwacht platte tekst: per lijn "bedrijfsnaam,tafelnummer" (tafelnummer
-// optioneel). Lege lijnen worden overgeslagen.
+// Splitst één CSV-lijn. Excel in het Nederlands/Belgisch gebruikt ";" als
+// scheiding, andere programma's "," of een tab; tussen aanhalingstekens mag
+// de scheiding gewoon in een naam voorkomen.
+function splitCsvLijn(lijn) {
+  const buitenCitaat = lijn.replace(/"[^"]*"/g, "");
+  const scheiding = buitenCitaat.includes(";") ? ";" : buitenCitaat.includes("\t") ? "\t" : ",";
+  const velden = [];
+  let huidig = "";
+  let inCitaat = false;
+  for (const teken of lijn) {
+    if (teken === '"') inCitaat = !inCitaat;
+    else if (teken === scheiding && !inCitaat) {
+      velden.push(huidig);
+      huidig = "";
+    } else huidig += teken;
+  }
+  velden.push(huidig);
+  return velden.map((v) => v.trim());
+}
+
+const CSV_KOPPEN = ["naam", "bedrijf", "bedrijfsnaam", "partner", "company"];
+
+// Verwacht per lijn "bedrijfsnaam" + eventueel "tafelnummer". Een eerste lijn
+// met kopteksten, een BOM van Excel en lege lijnen worden overgeslagen.
 function parseStandenCsv(tekst) {
   return tekst
+    .replace(/^﻿/, "")
     .split(/\r?\n/)
     .map((lijn) => lijn.trim())
     .filter((lijn) => lijn.length > 0)
-    .map((lijn) => {
-      const [naam, standNummer] = lijn.split(",").map((v) => (v || "").trim());
-      return { naam, standNummer };
+    .map((lijn, index) => {
+      const [naam = "", standNummer = ""] = splitCsvLijn(lijn);
+      return { naam, standNummer, kop: index === 0 && CSV_KOPPEN.includes(naam.toLowerCase()) };
     })
-    .filter((r) => r.naam);
+    .filter((r) => r.naam && !r.kop)
+    .map(({ naam, standNummer }) => ({ naam, standNummer }));
 }
 
 async function handleAdmin(request, env, url) {
