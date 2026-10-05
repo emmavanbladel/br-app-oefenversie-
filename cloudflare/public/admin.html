@@ -109,7 +109,59 @@
     font-size: 0.7rem; font-weight: 700; color: #fff; background: var(--groen);
     border-radius: 999px; padding: 2px 8px; margin-left: 8px;
   }
+
+  /* ---- QR-codes afdrukken ---- */
+  .print-opties { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0 16px; }
+  .print-opties input[type="color"] { width: 100%; height: 40px; padding: 2px; border: 1.5px solid var(--rand); border-radius: 8px; background: #fff; }
+  .vink { display: flex; align-items: center; gap: 8px; font-weight: 500; margin-top: 14px; }
+  .partner-keuze { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 4px; }
+  .partner-keuze label { display: flex; align-items: center; gap: 6px; font-weight: 500; margin: 0; }
+  .uitleg { color: var(--grijs); font-size: 0.85rem; margin: -6px 0 6px; line-height: 1.45; }
+  #print-voorbeeld { margin-top: 18px; background: #e9ebf0; border-radius: 10px; padding: 16px; overflow: auto; max-height: 620px; }
+  .voorbeeld-leeg { color: var(--grijs); font-size: 0.88rem; text-align: center; padding: 30px 0; }
+
+  .print-pagina {
+    background: #fff;
+    width: 210mm; height: 297mm;
+    padding: 10mm;
+    box-sizing: border-box;
+    display: grid;
+    gap: 4mm;
+    margin: 0 auto 16px;
+    zoom: 0.45;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    break-after: page;
+  }
+  .print-pagina.liggend { width: 297mm; height: 210mm; }
+  .qr-kaart {
+    container-type: inline-size;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    padding: 3mm;
+    min-width: 0; min-height: 0;
+    overflow: hidden;
+  }
+  .qr-kaart.rand { border: 0.3mm dashed #999; }
+  .qr-kaart .qr-logo { height: 9cqw; max-width: 60cqw; object-fit: contain; margin-bottom: 3cqw; flex: none; }
+  .qr-kaart .qr-titel { font-weight: 700; font-size: 6.5cqw; color: var(--accent, #0a4e9d); margin-bottom: 2cqw; flex: none; }
+  .qr-kaart img.qr-img { flex: 1 1 0; min-height: 0; width: 100%; object-fit: contain; }
+  .qr-kaart .qr-naam { font-weight: 800; font-size: 9cqw; color: var(--accent, #0a4e9d); margin-top: 2cqw; line-height: 1.15; flex: none; }
+  .qr-kaart .qr-tafel { font-size: 6cqw; color: #333; margin-top: 1cqw; font-weight: 600; flex: none; }
+  .qr-kaart .qr-tekst { font-size: 4.2cqw; color: #555; margin-top: 2cqw; flex: none; }
+
+  @media print {
+    header, #login-scherm, #admin-scherm > .kaart:not(#print-kaart) { display: none !important; }
+    body { background: #fff; }
+    main { max-width: none; padding: 0; }
+    #print-kaart { border: 0; padding: 0; margin: 0; border-radius: 0; }
+    #print-kaart > :not(#print-voorbeeld) { display: none !important; }
+    #print-voorbeeld { margin: 0; padding: 0; background: none; max-height: none; overflow: visible; border-radius: 0; }
+    .print-pagina { zoom: 1; margin: 0; box-shadow: none; }
+    .print-pagina:last-child { break-after: auto; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
 </style>
+<style id="page-stijl">@page { size: A4 portrait; margin: 0; }</style>
 </head>
 <body>
   <header>
@@ -178,6 +230,72 @@
         </div>
 
         <div id="standen-melding" class="melding"></div>
+      </div>
+
+      <div class="kaart" id="print-kaart">
+        <h2>QR-codes afdrukken</h2>
+        <p class="uitleg">
+          Voor de beurs die bij "Partners &amp; standen" geselecteerd is. Stel in hoe de pagina's eruit
+          moeten zien en klik op "Afdrukken / PDF". Kies in het printvenster "Opslaan als PDF" om er
+          een PDF van te maken, of kies gewoon een printer. Zet daar de schaal op 100% en schakel
+          kop- en voetteksten uit.
+        </p>
+        <div class="print-opties">
+          <div>
+            <label for="po-kolommen">Kolommen per pagina</label>
+            <select id="po-kolommen">
+              <option>1</option><option selected>2</option><option>3</option><option>4</option>
+            </select>
+          </div>
+          <div>
+            <label for="po-rijen">Rijen per pagina</label>
+            <select id="po-rijen">
+              <option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option>
+            </select>
+          </div>
+          <div>
+            <label for="po-richting">Pagina</label>
+            <select id="po-richting">
+              <option value="staand" selected>A4 staand</option>
+              <option value="liggend">A4 liggend</option>
+            </select>
+          </div>
+          <div>
+            <label for="po-titel">Titel boven de QR-code</label>
+            <input type="text" id="po-titel" value="Bestel je drankje" />
+          </div>
+          <div>
+            <label for="po-tekst">Tekst onder de naam</label>
+            <input type="text" id="po-tekst" value="Scan met je telefoon en bestel" />
+          </div>
+          <div>
+            <label for="po-tafellabel">Label voor tafel/stand</label>
+            <input type="text" id="po-tafellabel" value="Tafel" />
+          </div>
+          <div>
+            <label for="po-kleur">Kleur van titel &amp; naam</label>
+            <input type="color" id="po-kleur" value="#0a4e9d" />
+          </div>
+        </div>
+        <div class="print-opties">
+          <label class="vink"><input type="checkbox" id="po-logo" checked /> Ekonomika-logo tonen</label>
+          <label class="vink"><input type="checkbox" id="po-naam" checked /> Bedrijfsnaam tonen</label>
+          <label class="vink"><input type="checkbox" id="po-tafel" checked /> Tafel/stand tonen</label>
+          <label class="vink"><input type="checkbox" id="po-rand" checked /> Stippellijn om uit te knippen</label>
+        </div>
+
+        <h3>Welke partners?</h3>
+        <div class="rij-actie" style="margin-top:0;">
+          <button class="secundair" id="po-alles">Alles</button>
+          <button class="secundair" id="po-niets">Niets</button>
+        </div>
+        <div class="partner-keuze" id="po-partners"></div>
+
+        <div class="rij-actie">
+          <button id="po-print-btn">Afdrukken / PDF</button>
+          <span id="po-telling" class="uitleg" style="margin:0;"></span>
+        </div>
+        <div id="print-voorbeeld"></div>
       </div>
 
       <div class="kaart">
@@ -335,6 +453,7 @@
 
   async function laadStanden() {
     const standen = await adminFetch(`/api/admin/evenementen/${huidigeBeurs}/standen`);
+    zetPrintStanden(standen);
     const lijst = document.getElementById("standen-lijst");
     lijst.innerHTML = "";
 
@@ -424,6 +543,176 @@
     } catch (err) {
       toonMelding("standen-melding", err.message, "fout");
     }
+  });
+
+  // ---- QR-codes afdrukken ----
+  const PRINT_SLEUTEL = "qr-print-instellingen";
+  const PRINT_VELDEN = ["po-kolommen", "po-rijen", "po-richting", "po-titel", "po-tekst", "po-tafellabel", "po-kleur"];
+  const PRINT_VINKJES = ["po-logo", "po-naam", "po-tafel", "po-rand"];
+  let printStanden = [];
+  const uitgevinkt = new Set();
+
+  function printWaarde(id) {
+    const el = document.getElementById(id);
+    return el.type === "checkbox" ? el.checked : el.value;
+  }
+
+  function bewaarPrintInstellingen() {
+    const instellingen = {};
+    [...PRINT_VELDEN, ...PRINT_VINKJES].forEach((id) => { instellingen[id] = printWaarde(id); });
+    try { localStorage.setItem(PRINT_SLEUTEL, JSON.stringify(instellingen)); } catch {}
+  }
+
+  function herstelPrintInstellingen() {
+    let instellingen = null;
+    try { instellingen = JSON.parse(localStorage.getItem(PRINT_SLEUTEL) || "null"); } catch {}
+    if (!instellingen) return;
+    [...PRINT_VELDEN, ...PRINT_VINKJES].forEach((id) => {
+      if (!(id in instellingen)) return;
+      const el = document.getElementById(id);
+      if (el.type === "checkbox") el.checked = !!instellingen[id];
+      else el.value = instellingen[id];
+    });
+  }
+
+  function maakQrKaart(stand, evenement) {
+    const kaart = document.createElement("div");
+    kaart.className = "qr-kaart" + (printWaarde("po-rand") ? " rand" : "");
+
+    if (printWaarde("po-logo")) {
+      const logo = document.createElement("img");
+      logo.className = "qr-logo";
+      logo.src = "/assets/ekonomika-logo.png";
+      logo.alt = "";
+      kaart.appendChild(logo);
+    }
+
+    const titel = printWaarde("po-titel").trim();
+    if (titel) {
+      const el = document.createElement("div");
+      el.className = "qr-titel";
+      el.textContent = titel;
+      kaart.appendChild(el);
+    }
+
+    const qr = document.createElement("img");
+    qr.className = "qr-img";
+    qr.src = stand.token
+      ? `/qr.png?evenement=${evenement}&token=${encodeURIComponent(stand.token)}`
+      : `/qr.png?evenement=${evenement}&bedrijf=${encodeURIComponent(stand.naam)}`;
+    qr.alt = `QR-code voor ${stand.naam}`;
+    kaart.appendChild(qr);
+
+    if (printWaarde("po-naam")) {
+      const el = document.createElement("div");
+      el.className = "qr-naam";
+      el.textContent = stand.naam;
+      const lengte = stand.naam.length;
+      if (lengte > 40) el.style.fontSize = "5cqw";
+      else if (lengte > 24) el.style.fontSize = "6.5cqw";
+      else if (lengte > 14) el.style.fontSize = "8cqw";
+      kaart.appendChild(el);
+    }
+
+    if (printWaarde("po-tafel")) {
+      // Zonder tafelnummer blijft de regel leeg, zodat alle QR-codes even groot blijven.
+      const el = document.createElement("div");
+      el.className = "qr-tafel";
+      el.textContent = stand.stand_nummer
+        ? `${printWaarde("po-tafellabel").trim()} ${stand.stand_nummer}`.trim()
+        : " ";
+      kaart.appendChild(el);
+    }
+
+    const tekst = printWaarde("po-tekst").trim();
+    if (tekst) {
+      const el = document.createElement("div");
+      el.className = "qr-tekst";
+      el.textContent = tekst;
+      kaart.appendChild(el);
+    }
+    return kaart;
+  }
+
+  function renderPrintVoorbeeld() {
+    const kolommen = parseInt(printWaarde("po-kolommen"), 10);
+    const rijen = parseInt(printWaarde("po-rijen"), 10);
+    const liggend = printWaarde("po-richting") === "liggend";
+    const perPagina = kolommen * rijen;
+    const gekozen = printStanden.filter((s) => !uitgevinkt.has(s.id));
+
+    document.getElementById("page-stijl").textContent =
+      `@page { size: A4 ${liggend ? "landscape" : "portrait"}; margin: 0; }`;
+
+    const voorbeeld = document.getElementById("print-voorbeeld");
+    voorbeeld.innerHTML = "";
+    const aantalPaginas = Math.ceil(gekozen.length / perPagina);
+    document.getElementById("po-telling").textContent =
+      gekozen.length ? `${gekozen.length} QR-code(s) op ${aantalPaginas} pagina('s)` : "";
+
+    if (!gekozen.length) {
+      const leeg = document.createElement("div");
+      leeg.className = "voorbeeld-leeg";
+      leeg.textContent = "Geen partners geselecteerd.";
+      voorbeeld.appendChild(leeg);
+      return;
+    }
+
+    for (let i = 0; i < gekozen.length; i += perPagina) {
+      const pagina = document.createElement("div");
+      pagina.className = "print-pagina" + (liggend ? " liggend" : "");
+      pagina.style.gridTemplateColumns = `repeat(${kolommen}, minmax(0, 1fr))`;
+      pagina.style.gridTemplateRows = `repeat(${rijen}, minmax(0, 1fr))`;
+      pagina.style.setProperty("--accent", printWaarde("po-kleur"));
+      gekozen.slice(i, i + perPagina).forEach((s) => pagina.appendChild(maakQrKaart(s, huidigeBeurs)));
+      voorbeeld.appendChild(pagina);
+    }
+  }
+
+  function zetPrintStanden(standen) {
+    printStanden = standen;
+    const keuze = document.getElementById("po-partners");
+    keuze.innerHTML = "";
+    standen.forEach((s) => {
+      const label = document.createElement("label");
+      const vink = document.createElement("input");
+      vink.type = "checkbox";
+      vink.checked = !uitgevinkt.has(s.id);
+      vink.addEventListener("change", () => {
+        if (vink.checked) uitgevinkt.delete(s.id); else uitgevinkt.add(s.id);
+        renderPrintVoorbeeld();
+      });
+      label.append(vink, s.stand_nummer ? `${s.naam} (${s.stand_nummer})` : s.naam);
+      keuze.appendChild(label);
+    });
+    renderPrintVoorbeeld();
+  }
+
+  herstelPrintInstellingen();
+  [...PRINT_VELDEN, ...PRINT_VINKJES].forEach((id) => {
+    document.getElementById(id).addEventListener("input", () => {
+      bewaarPrintInstellingen();
+      renderPrintVoorbeeld();
+    });
+  });
+
+  document.getElementById("po-alles").addEventListener("click", () => {
+    uitgevinkt.clear();
+    zetPrintStanden(printStanden);
+  });
+  document.getElementById("po-niets").addEventListener("click", () => {
+    printStanden.forEach((s) => uitgevinkt.add(s.id));
+    zetPrintStanden(printStanden);
+  });
+
+  document.getElementById("po-print-btn").addEventListener("click", async () => {
+    renderPrintVoorbeeld();
+    const afbeeldingen = [...document.querySelectorAll("#print-voorbeeld img")];
+    await Promise.all(afbeeldingen.map((img) => img.complete ? null : new Promise((klaar) => {
+      img.addEventListener("load", klaar);
+      img.addEventListener("error", klaar);
+    })));
+    window.print();
   });
 
   // ---- Menu ----
