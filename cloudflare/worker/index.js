@@ -35,6 +35,13 @@ function isAdmin(request, env) {
   return request.headers.get("X-Admin-Password") === env.ADMIN_PASSWORD;
 }
 
+// Optioneel wachtwoord voor de algemene bestelpagina (zonder persoonlijke
+// partnerlink). Is BESTEL_PASSWORD niet ingesteld, dan blijft die pagina open.
+function bestelWachtwoordOk(request, env) {
+  if (!env.BESTEL_PASSWORD) return true;
+  return request.headers.get("X-Bestel-Password") === env.BESTEL_PASSWORD;
+}
+
 function foutRespons(err, status = 500) {
   return Response.json({ error: err.message || String(err) }, { status });
 }
@@ -165,6 +172,12 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // Laat de bestelpagina weten of er een wachtwoord nodig is en of het
+    // meegestuurde wachtwoord klopt.
+    if (url.pathname === "/api/bestel-login") {
+      return Response.json({ beveiligd: !!env.BESTEL_PASSWORD, ok: bestelWachtwoordOk(request, env) });
+    }
+
     if (url.pathname === "/api/admin/login") {
       return Response.json({ ok: isAdmin(request, env) }, { status: isAdmin(request, env) ? 200 : 401 });
     }
@@ -247,6 +260,27 @@ export default {
       url.pathname === "/ws" ||
       url.pathname === "/api/bestellingen" ||
       /^\/api\/bestellingen\/\d+\/(nieuw|bezig|klaar|geleverd)$/.test(url.pathname);
+
+    // Bestellen mag met een geldige persoonlijke partnerlink (token), of met
+    // het wachtwoord van de algemene bestelpagina als dat is ingesteld.
+    if (url.pathname === "/api/bestellingen" && request.method === "POST" && !bestelWachtwoordOk(request, env)) {
+      let toegestaan = false;
+      const token = request.headers.get("X-Stand-Token") || "";
+      if (token) {
+        try {
+          const evenementId = url.searchParams.get("evenement") || (await getActiefEvenementId(env));
+          toegestaan = !!(await haalStandDoorToken(env, evenementId, token));
+        } catch {
+          toegestaan = false;
+        }
+      }
+      if (!toegestaan) {
+        return Response.json(
+          { error: "Wachtwoord vereist om te bestellen zonder persoonlijke link." },
+          { status: 401 }
+        );
+      }
+    }
 
     if (isBestellingenRoute) {
       return getKamer(env, url).fetch(request);

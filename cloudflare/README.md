@@ -72,6 +72,24 @@ wachtwoord stel je zelf in als een **geheime** omgevingsvariabele:
 Zonder deze variabele blijft `/admin.html` volledig op slot (elke poging om
 in te loggen wordt geweigerd).
 
+## Wachtwoord voor de algemene bestelpagina (optioneel)
+
+Partners die bestellen via hun **persoonlijke link of QR-code** hebben nooit een
+wachtwoord nodig. Wil je dat wie de algemene pagina opent (zonder zo'n link)
+eerst een wachtwoord moet invullen, voeg dan een tweede **geheime** variabele
+toe, op dezelfde manier als hierboven: naam `BESTEL_PASSWORD`, met een
+wachtwoord naar keuze. De server dwingt dit af bij het plaatsen van de
+bestelling, niet enkel op de pagina zelf. Is `BESTEL_PASSWORD` niet ingesteld,
+dan blijft de algemene bestelpagina gewoon open.
+
+## Tafelnummer bij bestellingen
+
+Bestelt een partner via zijn persoonlijke link, dan komt het tafelnummer dat
+bij die partner in `/admin.html` staat mee op de bestelling te staan: op het
+beheerscherm verschijnt een blauwe badge "Tafel 5" naast de bedrijfsnaam en in
+de browsermelding. Bestellingen via de algemene pagina krijgen enkel een
+tafelnummer als de ingevulde naam exact overeenkomt met een partner.
+
 ## Eenmalig instellen
 
 Je hebt een gratis [Cloudflare-account](https://dash.cloudflare.com/sign-up)

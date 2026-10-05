@@ -79,6 +79,16 @@
     font-family: inherit;
   }
   input[type="text"]:focus { border-color: var(--blauw); }
+  input[type="password"] {
+    width: 100%;
+    padding: 11px 13px;
+    font-size: 0.98rem;
+    border: 1.5px solid var(--rand);
+    border-radius: 8px;
+    outline: none;
+    font-family: inherit;
+  }
+  input[type="password"]:focus { border-color: var(--blauw); }
 
   .drank-lijst { margin-top: 6px; border-top: 1px solid var(--rand); }
   .drank-rij {
@@ -193,7 +203,19 @@
 
   <main>
     <div class="kaart">
-      <div id="bestel-scherm">
+      <div id="wachtwoord-scherm" style="display:none;">
+        <h1>Bestel je drankje</h1>
+        <p class="sub">
+          Voor deze pagina heb je een wachtwoord nodig. Of gebruik de persoonlijke link of
+          QR-code van je stand, dan hoef je niets in te vullen.
+        </p>
+        <label for="bestel-wachtwoord">Wachtwoord</label>
+        <input type="password" id="bestel-wachtwoord" autocomplete="off" />
+        <div id="wachtwoord-melding" class="melding"></div>
+        <button type="button" class="bestel-btn" id="wachtwoord-btn">Verder</button>
+      </div>
+
+      <div id="bestel-scherm" style="display:none;">
         <h1>Bestel je drankje</h1>
         <p class="sub">Ekonomika brengt het tot bij jouw stand.</p>
 
@@ -236,6 +258,9 @@
   let vastBedrijf = (zoekParams.get("bedrijf") || "").trim();
   const vastToken = (zoekParams.get("token") || "").trim();
   const vastEvenement = (zoekParams.get("evenement") || "").trim();
+  let tokenGeldig = false;
+  let bestelWachtwoord = "";
+  try { bestelWachtwoord = sessionStorage.getItem("bestel-wachtwoord") || ""; } catch {}
 
   // Een partnerlink kan de bedrijfsnaam rechtstreeks meegeven (?bedrijf=...,
   // oudere links) of via een niet-raadbare ?token=..., die we hier eerst
@@ -249,6 +274,7 @@
         if (res.ok) {
           const stand = await res.json();
           vastBedrijf = stand.naam;
+          tokenGeldig = true;
         }
       } catch {
         // negeren; het veld blijft dan gewoon vrij invulbaar
@@ -264,6 +290,48 @@
       vastEl.appendChild(naamEl);
       vastEl.style.display = "block";
     }
+  }
+
+  async function wachtwoordStatus(wachtwoord) {
+    const res = await fetch("/api/bestel-login", { headers: { "X-Bestel-Password": wachtwoord } });
+    return res.json();
+  }
+
+  function toonBestelScherm() {
+    document.getElementById("wachtwoord-scherm").style.display = "none";
+    document.getElementById("bestel-scherm").style.display = "block";
+  }
+
+  // Zonder geldige persoonlijke partnerlink kan er een wachtwoord nodig zijn
+  // (als de beheerders er een hebben ingesteld). De server controleert dit
+  // bij het plaatsen van de bestelling nog eens zelf.
+  async function controleerToegang() {
+    if (tokenGeldig) return;
+    let status = { beveiligd: false, ok: true };
+    try { status = await wachtwoordStatus(bestelWachtwoord); } catch {}
+    if (!status.beveiligd || status.ok) return;
+
+    document.getElementById("wachtwoord-scherm").style.display = "block";
+    const invoer = document.getElementById("bestel-wachtwoord");
+    const knop = document.getElementById("wachtwoord-btn");
+    const melding = document.getElementById("wachtwoord-melding");
+
+    await new Promise((klaar) => {
+      const probeer = async () => {
+        melding.className = "melding";
+        const resultaat = await wachtwoordStatus(invoer.value).catch(() => ({ ok: false }));
+        if (resultaat.ok) {
+          bestelWachtwoord = invoer.value;
+          try { sessionStorage.setItem("bestel-wachtwoord", bestelWachtwoord); } catch {}
+          klaar();
+        } else {
+          melding.textContent = "Dat wachtwoord klopt niet.";
+          melding.className = "melding fout";
+        }
+      };
+      knop.addEventListener("click", probeer);
+      invoer.addEventListener("keydown", (e) => { if (e.key === "Enter") probeer(); });
+    });
   }
 
   async function laadMenu() {
@@ -334,9 +402,12 @@
       const bestelUrl = vastEvenement
         ? `/api/bestellingen?evenement=${encodeURIComponent(vastEvenement)}`
         : "/api/bestellingen";
+      const headers = { "Content-Type": "application/json" };
+      if (tokenGeldig) headers["X-Stand-Token"] = vastToken;
+      if (bestelWachtwoord) headers["X-Bestel-Password"] = bestelWachtwoord;
       const res = await fetch(bestelUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ bedrijf, dranken }),
       });
       if (!res.ok) {
@@ -366,6 +437,8 @@
 
   (async () => {
     await bepaalVastBedrijf();
+    await controleerToegang();
+    toonBestelScherm();
     await laadMenu();
   })();
 </script>

@@ -163,6 +163,17 @@
     margin-bottom: 8px;
   }
   .bedrijf { font-weight: 700; font-size: 1rem; color: #111827; }
+  .tafel {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--blauw);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
   .tijd { font-size: 0.8rem; color: var(--grijs); white-space: nowrap; }
   .dranken { font-size: 0.92rem; margin: 0 0 12px; color: #333; }
   .dranken span.aantal { font-weight: 700; color: var(--blauw); }
@@ -352,7 +363,8 @@
   function toonBrowserMelding(bestelling) {
     if ("Notification" in window && Notification.permission === "granted") {
       const drankenTekst = bestelling.dranken.map((d) => `${d.aantal}x ${d.naam}`).join(", ");
-      new Notification("Nieuwe bestelling — " + bestelling.bedrijf, { body: drankenTekst });
+      const plaats = bestelling.tafel ? ` (Tafel ${bestelling.tafel})` : "";
+      new Notification("Nieuwe bestelling — " + bestelling.bedrijf + plaats, { body: drankenTekst });
     }
   }
 
@@ -372,10 +384,18 @@
     const bedrijfEl = document.createElement("span");
     bedrijfEl.className = "bedrijf";
     bedrijfEl.textContent = bestelling.bedrijf;
+    const naamBlok = document.createElement("div");
+    naamBlok.appendChild(bedrijfEl);
+    if (bestelling.tafel) {
+      const tafelEl = document.createElement("span");
+      tafelEl.className = "tafel";
+      tafelEl.textContent = `Tafel ${bestelling.tafel}`;
+      naamBlok.appendChild(tafelEl);
+    }
     const tijdEl = document.createElement("span");
     tijdEl.className = "tijd";
     tijdEl.textContent = formatTijd(bestelling.tijdstip);
-    top.append(bedrijfEl, tijdEl);
+    top.append(naamBlok, tijdEl);
 
     const drankenEl = document.createElement("div");
     drankenEl.className = "dranken";

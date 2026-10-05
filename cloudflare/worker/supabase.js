@@ -67,27 +67,42 @@ function mapBestelling(row) {
   return {
     id: row.id,
     bedrijf: row.bedrijf_naam,
+    tafel: row.tafel || null,
     dranken: (row.bestelling_items || []).map((d) => ({ naam: d.naam, aantal: d.aantal })),
     status: row.status,
     tijdstip: row.tijdstip,
   };
 }
 
+// Zoekt de tafel/stand op bij de stand_id's van bestellingen, zodat de
+// vrijwilligers weten waar ze moeten leveren.
+async function haalTafelnummers(env, standIds) {
+  const ids = [...new Set(standIds.filter(Boolean))];
+  if (!ids.length) return new Map();
+  const rijen = await supabaseFetch(env, `standen?id=in.(${ids.join(",")})&select=id,stand_nummer`);
+  return new Map(rijen.map((r) => [r.id, r.stand_nummer]));
+}
+
 export async function haalBestellingen(env, evenementId) {
   const rijen = await supabaseFetch(
     env,
-    `bestellingen?evenement_id=eq.${evenementId}&select=id,bedrijf_naam,status,tijdstip,bestelling_items(naam,aantal)&order=tijdstip.desc`
+    `bestellingen?evenement_id=eq.${evenementId}&select=id,bedrijf_naam,stand_id,status,tijdstip,bestelling_items(naam,aantal)&order=tijdstip.desc`
   );
-  return rijen.map(mapBestelling);
+  const tafels = await haalTafelnummers(env, rijen.map((r) => r.stand_id));
+  return rijen.map((r) => mapBestelling({ ...r, tafel: tafels.get(r.stand_id) }));
 }
 
 export async function maakBestelling(env, evenementId, bedrijf, dranken) {
   let standId = null;
+  let tafel = null;
   const standenMatch = await supabaseFetch(
     env,
-    `standen?evenement_id=eq.${evenementId}&naam=eq.${encodeURIComponent(bedrijf)}&select=id&limit=1`
+    `standen?evenement_id=eq.${evenementId}&naam=eq.${encodeURIComponent(bedrijf)}&select=id,stand_nummer&limit=1`
   );
-  if (standenMatch?.[0]) standId = standenMatch[0].id;
+  if (standenMatch?.[0]) {
+    standId = standenMatch[0].id;
+    tafel = standenMatch[0].stand_nummer;
+  }
 
   const [nieuw] = await supabaseFetch(env, "bestellingen", {
     method: "POST",
@@ -107,7 +122,7 @@ export async function maakBestelling(env, evenementId, bedrijf, dranken) {
     ),
   });
 
-  return mapBestelling({ ...nieuw, bestelling_items: dranken });
+  return mapBestelling({ ...nieuw, tafel, bestelling_items: dranken });
 }
 
 // De vier stappen waar een bestelling doorheen gaat, in volgorde.
@@ -119,7 +134,7 @@ export async function zetBestellingStatus(env, evenementId, id, status) {
   }
   const rijen = await supabaseFetch(
     env,
-    `bestellingen?id=eq.${id}&evenement_id=eq.${evenementId}&select=id,bedrijf_naam,status,tijdstip`,
+    `bestellingen?id=eq.${id}&evenement_id=eq.${evenementId}&select=id,bedrijf_naam,stand_id,status,tijdstip`,
     {
       method: "PATCH",
       headers: { Prefer: "return=representation" },
@@ -128,8 +143,11 @@ export async function zetBestellingStatus(env, evenementId, id, status) {
   );
   if (!rijen?.[0]) return null;
 
-  const items = await supabaseFetch(env, `bestelling_items?bestelling_id=eq.${id}&select=naam,aantal`);
-  return mapBestelling({ ...rijen[0], bestelling_items: items });
+  const [items, tafels] = await Promise.all([
+    supabaseFetch(env, `bestelling_items?bestelling_id=eq.${id}&select=naam,aantal`),
+    haalTafelnummers(env, [rijen[0].stand_id]),
+  ]);
+  return mapBestelling({ ...rijen[0], tafel: tafels.get(rijen[0].stand_id), bestelling_items: items });
 }
 
 // ---- Admin: beurzen ----
