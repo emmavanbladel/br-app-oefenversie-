@@ -55,7 +55,7 @@ Op `/admin.html` kan je:
 - de QR-codes **afdrukken of als PDF opslaan** (kaart "QR-codes afdrukken"):
   je kiest het aantal kolommen en rijen per A4-pagina (staand of liggend),
   welke partners erbij komen, en past de titel, de tekst onder de naam, het
-  label voor het tafelnummer, de kleur, het logo en de stippellijn aan. De
+  label voor het tafelnummer, de kleur, het logo en de knipplijnen aan (één gedeelde lijn tussen twee buren, dus minder knipwerk). De
   instellingen worden onthouden. Klik op "Afdrukken / PDF" en kies in het
   printvenster "Opslaan als PDF" (schaal 100%, kop- en voetteksten uit);
 - het **menu (drankjes) per beurs** beheren.

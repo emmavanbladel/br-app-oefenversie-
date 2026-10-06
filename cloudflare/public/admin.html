@@ -141,7 +141,11 @@
     min-width: 0; min-height: 0;
     overflow: hidden;
   }
-  .qr-kaart.rand { border: 0.3mm dashed #999; }
+  /* Gedeelde knipplijnen: geen tussenruimte, en elke lijn wordt maar één keer getekend. */
+  .print-pagina.gedeeld { gap: 0; }
+  .qr-kaart.rand { border-right: 0.3mm dashed #999; border-bottom: 0.3mm dashed #999; }
+  .qr-kaart.rand.rand-boven { border-top: 0.3mm dashed #999; }
+  .qr-kaart.rand.rand-links { border-left: 0.3mm dashed #999; }
   .qr-kaart .qr-logo { height: 9cqw; max-width: 60cqw; object-fit: contain; margin-bottom: 3cqw; flex: none; }
   .qr-kaart .qr-titel { font-weight: 700; font-size: 6.5cqw; color: var(--accent, #0a4e9d); margin-bottom: 2cqw; flex: none; }
   .qr-kaart img.qr-img { flex: 1 1 0; min-height: 0; width: 100%; object-fit: contain; }
@@ -286,7 +290,7 @@
           <label class="vink"><input type="checkbox" id="po-logo" checked /> Ekonomika-logo tonen</label>
           <label class="vink"><input type="checkbox" id="po-naam" checked /> Bedrijfsnaam tonen</label>
           <label class="vink"><input type="checkbox" id="po-tafel" checked /> Tafel/stand tonen</label>
-          <label class="vink"><input type="checkbox" id="po-rand" checked /> Stippellijn om uit te knippen</label>
+          <label class="vink"><input type="checkbox" id="po-rand" checked /> Stippellijnen om uit te knippen (één lijn tussen twee buren)</label>
         </div>
 
         <h3>Welke partners?</h3>
@@ -591,9 +595,11 @@
     });
   }
 
-  function maakQrKaart(stand, evenement) {
+  function maakQrKaart(stand, evenement, rij, kolom) {
     const kaart = document.createElement("div");
-    kaart.className = "qr-kaart" + (printWaarde("po-rand") ? " rand" : "");
+    kaart.className = "qr-kaart" + (printWaarde("po-rand")
+      ? " rand" + (rij === 0 ? " rand-boven" : "") + (kolom === 0 ? " rand-links" : "")
+      : "");
 
     if (printWaarde("po-logo")) {
       const logo = document.createElement("img");
@@ -676,11 +682,14 @@
 
     for (let i = 0; i < gekozen.length; i += perPagina) {
       const pagina = document.createElement("div");
-      pagina.className = "print-pagina" + (liggend ? " liggend" : "");
+      pagina.className = "print-pagina"
+        + (liggend ? " liggend" : "")
+        + (printWaarde("po-rand") ? " gedeeld" : "");
       pagina.style.gridTemplateColumns = `repeat(${kolommen}, minmax(0, 1fr))`;
       pagina.style.gridTemplateRows = `repeat(${rijen}, minmax(0, 1fr))`;
       pagina.style.setProperty("--accent", printWaarde("po-kleur"));
-      gekozen.slice(i, i + perPagina).forEach((s) => pagina.appendChild(maakQrKaart(s, huidigeBeurs)));
+      gekozen.slice(i, i + perPagina).forEach((s, idx) =>
+        pagina.appendChild(maakQrKaart(s, huidigeBeurs, Math.floor(idx / kolommen), idx % kolommen)));
       voorbeeld.appendChild(pagina);
     }
   }
